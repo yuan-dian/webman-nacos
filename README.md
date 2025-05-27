@@ -1,5 +1,13 @@
 # webman-nacos 插件
 
+# 简介
+Webman-naocs是基于PHP开发的Webman插件生态下的Nacos客户端；
+
+灵感来自于workbunny/webman-nacos，其中的一些配置与实现都是源于其项目，这里对 workbunny 表示感谢！
+
+与其区别在于配置监听，支持通过注解实现配置类的自动注入，取消了写入本地文件的方式
+
+实例注册基本是复用workbunny/webman-nacos的实现
 
 # 安装
 

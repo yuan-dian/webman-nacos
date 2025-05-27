@@ -222,8 +222,9 @@ class ConfigManage
             $callback = $listener['callback'];
             // 初始化配置
             $this->fetchAndCache($dataId, $group, $tenant, $type);
-            call_user_func($callback, $config_id);
-
+            if (is_callable($callback)) {
+                call_user_func($callback, $config_id);
+            }
             // 使用长轮询监听配置
             Timer::add(
                 self::$LONG_PULLING_INTERVAL,
@@ -245,6 +246,7 @@ class ConfigManage
      * @param string $tenant
      * @param string $type
      * @param string $config_id
+     * @param callable|null $callback
      * @date 2025/5/22 下午2:29
      * @author 原点 467490186@qq.com
      */
@@ -254,7 +256,7 @@ class ConfigManage
         string $tenant,
         string $type,
         string $config_id,
-        callable $callback
+        ?callable $callback = null
     ): void {
         $contentMD5 = self::$cacheMd5[$config_id] ?? '';
         try {
@@ -281,7 +283,9 @@ class ConfigManage
                 if ($response->getStatusCode() === 200) {
                     if (!empty($response->getBody()->getContents())) {
                         $this->fetchAndCache($dataId, $group, $tenant, $type, $config_id);
-                        call_user_func($callback, $config_id);
+                        if (is_callable($callback)) {
+                            call_user_func($callback, $config_id);
+                        }
                         Log::info("配置变更：" . $response->getBody()->getContents());
                     }
 

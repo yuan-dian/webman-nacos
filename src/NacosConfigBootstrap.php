@@ -107,7 +107,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
      * @date 2025/5/26 下午2:24
      * @author 原点 467490186@qq.com
      */
-    private static function bindProperties(object $instance, $config_id): void
+    private static function bindProperties(object $instance, string $config_id): void
     {
         try {
             $reflection = static::getReflectionClass($instance);
