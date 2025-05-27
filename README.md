@@ -32,8 +32,10 @@ class Config
 ```php
 $config =  \yuandian\Container\Container::getInstance()->get(Config::class);
 ``` 
-
-
+- 不通过配置类直接获取配置
+```php
+$value = ConfigManage::getConfig('aa.bb', '');
+``` 
 
 ## 捐献
 
