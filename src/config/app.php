@@ -18,6 +18,9 @@ return [
     'username'              => null,
     'password'              => null,
 
+    /** 需要配置监听的进程名称 */
+    'listen_processes_name' => ['webman'],
+
     /** 需要扫描的配置类目录 */
     'scan_dirs' => [app_path() . '/config'],
 
