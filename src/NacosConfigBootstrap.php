@@ -29,7 +29,6 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
 {
     private static array $cachedConfigClasses = [];
     private static array $reflectionCache = [];
-    private static string $CACHE_FILE = '';
     private static bool $initialized = false;
 
     /**
@@ -46,7 +45,6 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             return;
         }
         self::$initialized = true;
-        self::$CACHE_FILE = runtime_path() . '/nacos_config_classes.cache';
         self::processAnnotations();
         $config_listeners = config('plugin.yuandian.webman-nacos.app.config_listeners', []);
         /**
@@ -80,12 +78,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
      */
     private static function processAnnotations(): void
     {
-        if (config('app.debug') || !file_exists(self::$CACHE_FILE)) {
-            $classes = self::findProjectClasses();
-            file_put_contents(self::$CACHE_FILE, serialize($classes));
-        } else {
-            $classes = unserialize(file_get_contents(self::$CACHE_FILE));
-        }
+        $classes = self::findProjectClasses();
 
         foreach ($classes as $class) {
             $reflection = static::getReflectionClass($class);;
