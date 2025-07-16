@@ -173,15 +173,35 @@ class ConfigManage
      * @param string $type
      * @return array
      * @date 2025/5/22 下午2:29
+     * @throws \Exception
      * @author 原点 467490186@qq.com
      */
     protected function parseConfig(string $content, string $type): array
     {
         return match (strtolower($type)) {
-            'yaml', 'yml' => \yaml_parse($content),
+            'yaml', 'yml' => $this->parseYaml($content),
             'properties' => $this->parseProperties($content),
             default => json_decode($content, true) ?? [],
         };
+    }
+
+    /**
+     * 解析Yaml
+     * @param string $content
+     * @return array
+     * @throws \Exception
+     * @date 2025/7/16 上午10:38
+     * @author 原点 467490186@qq.com
+     */
+    protected function parseYaml(string $content): array
+    {
+        if (extension_loaded('yaml')) {
+            return yaml_parse($content);
+        }
+        if (class_exists('\Symfony\Component\Yaml\Yaml')) {
+            return \Symfony\Component\Yaml\Yaml::parse($content);
+        }
+        throw new \Exception("解析Yaml失败，请安装yaml扩展或者symfony/yaml库");
     }
 
     /**

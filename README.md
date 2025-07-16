@@ -13,6 +13,11 @@ Webman-naocs是基于PHP开发的Webman插件生态下的Nacos客户端；
 
 ``` composer require yuandian/webman-nacos ```
 
+# 依赖
+如果需要配置格式是yaml，需要安装yaml扩展或者symfony/yaml库
+- 安装yaml：```pecl install yaml``` 【其他方式自行处理】
+- 安装symfony/yaml：```composer require symfony/yaml```
+
 # 特性
 - 支持配置获取
 - 支持实例注册

@@ -23,8 +23,7 @@
     "monolog/monolog": "^2.8",
     "ext-mbstring": "*",
     "workerman/webman-framework": "^2.1",
-    "yuandian/container": "^1.0",
-    "ext-yaml": "*"
+    "yuandian/container": "^1.0"
   },
   "autoload": {
     "psr-4": {
