@@ -16,19 +16,18 @@ namespace yuandian\WebmanNacos;
 use FilesystemIterator;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
-use ReflectionClass;
 use support\Log;
 use Throwable;
 use Workerman\Worker;
 use yuandian\Container\Container;
+use yuandian\Tools\bean\BeanUtil;
+use yuandian\Tools\reflection\ClassReflector;
 use yuandian\WebmanNacos\Annotation\NacosConfiguration;
-use yuandian\WebmanNacos\Annotation\NacosValue;
 use yuandian\WebmanNacos\Client\ConfigManage;
 
 class NacosConfigBootstrap implements \Webman\Bootstrap
 {
     private static array $cachedConfigClasses = [];
-    private static array $reflectionCache = [];
     private static bool $initialized = false;
 
     /**
@@ -81,50 +80,33 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
         $classes = self::findProjectClasses();
 
         foreach ($classes as $class) {
-            $reflection = static::getReflectionClass($class);;
-            $attributes = $reflection->getAttributes(NacosConfiguration::class);
-
-            if (!empty($attributes)) {
-                /** @var NacosConfiguration $configAttr */
-                $configAttr = $attributes[0]->newInstance();
-                $key = $configAttr->configId;
-                self::$cachedConfigClasses[$key][] = $class;
+            $reflection = new ClassReflector($class);
+            $config = $reflection->getAttribute(NacosConfiguration::class);
+            if (empty($config)) {
+                continue;
             }
+            $key = $config->configId;
+            self::$cachedConfigClasses[$key][] = $class;
         }
     }
 
     /**
      * 绑定属性值
      * @param object $instance
-     * @param $config_id
+     * @param string $config_id
      * @date 2025/5/26 下午2:24
      * @author 原点 467490186@qq.com
      */
     private static function bindProperties(object $instance, string $config_id): void
     {
         try {
-            $reflection = static::getReflectionClass($instance);
-            $attributes = $reflection->getAttributes(NacosConfiguration::class);
-            if (empty($attributes)) {
+            $reflection = new ClassReflector($instance);
+            $nacosConfig = $reflection->getAttribute(NacosConfiguration::class);
+            if (empty($nacosConfig)) {
                 return;
             }
-            $configAttr = $attributes[0]->newInstance();
-            $prefix = $configAttr->prefix;
-            foreach ($reflection->getProperties() as $property) {
-                $attributes = $property->getAttributes(NacosValue::class);
-                $name = $property->getName();
-                $default_value = $property->getDefaultValue();
-                if (!empty($attributes)) {
-                    /** @var NacosValue $valueAttr */
-                    $valueAttr = $attributes[0]->newInstance();
-                    $name = $valueAttr->key;
-                    $default_value = $valueAttr->default;
-                }
-                $key = $prefix . '.' . $name;
-                $value = ConfigManage::getConfig($key, $default_value, $config_id);
-                // todo 没有处理复杂类型，如对象赋值
-                $property->setValue($instance, $value);
-            }
+            $data = ConfigManage::getConfig($nacosConfig->prefix, null, $config_id);
+            BeanUtil::arrayToObject($data, $instance);
         } catch (Throwable $throwable) {
             Log::error($throwable);
         }
@@ -178,20 +160,5 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             return $matches[1] . '\\' . $matches[5];
         }
         return null;
-    }
-
-    /**
-     * 获取类的反射
-     * @throws \ReflectionException
-     */
-    private static function getReflectionClass(string|object $object): ReflectionClass
-    {
-        $className = is_object($object) ? get_class($object) : $object;
-
-        if (!isset(self::$reflectionCache[$className])) {
-            self::$reflectionCache[$className] = new ReflectionClass($className);
-        }
-
-        return self::$reflectionCache[$className];
     }
 }
