@@ -46,9 +46,6 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
         self::$initialized = true;
         self::processAnnotations();
         $config_listeners = config('plugin.yuandian.webman-nacos.app.config_listeners', []);
-        /**
-         * @var ConfigManage $configManage ;
-         */
         $configManage = Container::getInstance()->make(ConfigManage::class);
         foreach ($config_listeners as $config_id => $config_listener) {
             $configManage->addListener(
