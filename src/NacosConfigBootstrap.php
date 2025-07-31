@@ -102,7 +102,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             if (empty($nacosConfig)) {
                 return;
             }
-            $data = ConfigManage::getConfig($nacosConfig->prefix, null, $config_id);
+            $data = ConfigManage::getConfig($nacosConfig->prefix, [], $config_id);
             BeanUtil::arrayToObject($data, $instance);
         } catch (Throwable $throwable) {
             Log::error($throwable);
