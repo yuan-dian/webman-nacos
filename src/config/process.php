@@ -12,9 +12,15 @@
 declare(strict_types=1);
 
 use yuandian\WebmanNacos\Process\InstanceRegistrarProcess;
+use yuandian\WebmanNacos\Process\NacosConfigListener;
 
 return [
-    'instance-registrar' => [
-        'handler'  => InstanceRegistrarProcess::class
+    'instance-registrar'    => [
+        'handler' => InstanceRegistrarProcess::class,
+        'count'   => 1
+    ],
+    'nacos-config-listener' => [
+        'handler' => NacosConfigListener::class,
+        'count'   => 1
     ],
 ];

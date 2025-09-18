@@ -19,12 +19,12 @@
     "ext-json": "*",
     "guzzlehttp/promises": "^1.5 | ^2.0",
     "guzzlehttp/guzzle": "^7.4",
-    "workerman/http-client": "^1.0 | ^2.0",
     "monolog/monolog": "^2.8",
     "ext-mbstring": "*",
     "workerman/webman-framework": "^2.1",
     "yuandian/container": "^1.0",
-    "yuandian/tools": "^1.0"
+    "yuandian/tools": "^1.0",
+    "webman/channel": "^2.1"
   },
   "autoload": {
     "psr-4": {

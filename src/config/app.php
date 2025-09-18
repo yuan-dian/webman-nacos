@@ -17,18 +17,14 @@ return [
     'base_uri'              => 'http://127.0.0.1:8848',
     'username'              => null,
     'password'              => null,
+    'access_key'            => null,
+    'access_secret'         => null,
 
     /** 需要配置监听的进程名称 */
     'listen_processes_name' => ['webman'],
 
     /** 需要扫描的配置类目录 */
-    'scan_dirs' => [app_path() . '/config'],
-
-    /** 长轮询等待时长 毫秒 */
-    'long_pulling_timeout'  => 30000,
-
-    /** 长轮询间隔 秒 */
-    'long_pulling_interval' => 30,
+    'scan_dirs'             => [app_path() . '/config'],
 
     /** float 实例心跳间隔 秒 */
     'instance_heartbeat'    => 5.0,

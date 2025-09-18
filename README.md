@@ -3,11 +3,8 @@
 # 简介
 Webman-naocs是基于PHP开发的Webman插件生态下的Nacos客户端；
 
-灵感来自于workbunny/webman-nacos，其中的一些配置与实现都是源于其项目，这里对 workbunny 表示感谢！
+灵感来自于workbunny/webman-nacos、hyperf/config-nacos，其中的一些配置与实现都是源于其项目！
 
-与其区别在于配置监听，支持通过注解实现配置类的自动注入，取消了写入本地文件的方式
-
-实例注册基本是复用workbunny/webman-nacos的实现
 
 # 安装
 
@@ -22,6 +19,7 @@ Webman-naocs是基于PHP开发的Webman插件生态下的Nacos客户端；
 - 支持配置获取
 - 支持实例注册
 - 支持通过注解自动注入配置
+- 配置变更通过webman/channel进程间通信
 
 # 使用
 
@@ -44,11 +42,7 @@ class Config
 - 获取配置
 ```php
 $config =  \yuandian\Container\Container::getInstance()->get(Config::class);
-``` 
-- 不通过配置类直接获取配置
-```php
-$value = ConfigManage::getConfig('aa.bb', '');
-``` 
+```
 
 ## 捐献
 
