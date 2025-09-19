@@ -69,6 +69,29 @@ class ConfigProvider extends AbstractProvider
 
     public function listener(
         #[ArrayShape([
+            'dataId' => 'string',
+            'group' => 'string',
+            'contentMD5' => 'string', // md5(file_get_contents($configPath))
+            'tenant' => 'string',
+        ])]
+        array $options = []
+    ): ResponseInterface {
+        $config = ($options['dataId'] ?? null) . self::WORD_SEPARATOR
+            . ($options['group'] ?? null) . self::WORD_SEPARATOR
+            . ($options['contentMD5'] ?? null) . self::WORD_SEPARATOR
+            . ($options['tenant'] ?? null) . self::LINE_SEPARATOR;
+        return $this->request('POST', 'nacos/v3/admin/cs/config/listener', [
+            RequestOptions::QUERY => [
+                'Listening-Configs' => $config,
+            ],
+            RequestOptions::HEADERS => [
+                'Long-Pulling-Timeout' => 30000,
+            ],
+        ]);
+    }
+
+    public function listenerAsync(
+        #[ArrayShape([
             'dataId'     => 'string',
             'group'      => 'string',
             'contentMD5' => 'string', // md5(file_get_contents($configPath))
@@ -88,7 +111,7 @@ class ConfigProvider extends AbstractProvider
                 'Listening-Configs' => $config,
             ],
             RequestOptions::HEADERS => [
-                'Long-Pulling-Timeout' => 30,
+                'Long-Pulling-Timeout' => 30000,
             ],
         ])->then(function ($response) use ($options) {
             if ($response->getStatusCode() === 200) {

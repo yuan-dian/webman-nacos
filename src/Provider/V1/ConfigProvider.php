@@ -70,6 +70,30 @@ class ConfigProvider extends AbstractProvider
         #[ArrayShape([
             'dataId'     => 'string',
             'group'      => 'string',
+            'contentMD5' => 'string', // md5(file_get_contents($configPath))
+            'tenant'     => 'string',
+        ])]
+        array $options = []
+    ): ResponseInterface {
+        $config = ($options['dataId'] ?? null) . self::WORD_SEPARATOR
+            . ($options['group'] ?? null) . self::WORD_SEPARATOR
+            . ($options['contentMD5'] ?? null) . self::WORD_SEPARATOR
+            . ($options['tenant'] ?? null) . self::LINE_SEPARATOR;
+        return $this->request('POST', 'nacos/v1/cs/configs/listener', [
+            RequestOptions::QUERY   => [
+                'Listening-Configs' => $config,
+            ],
+            RequestOptions::HEADERS => [
+                'Long-Pulling-Timeout' => 30000,
+            ],
+        ]);
+    }
+
+
+    public function listenerAsync(
+        #[ArrayShape([
+            'dataId'     => 'string',
+            'group'      => 'string',
             'contentMD5' => 'string',
             'tenant'     => 'string',
             'configId'   => 'string',
@@ -87,10 +111,8 @@ class ConfigProvider extends AbstractProvider
                 'Listening-Configs' => $config,
             ],
             RequestOptions::HEADERS => [
-                'Long-Pulling-Timeout' => 30,
+                'Long-Pulling-Timeout' => 30000,
             ],
-            RequestOptions::HEADERS
-
         ])->then(function ($response) use ($options) {
             if ($response->getStatusCode() === 200) {
                 if (!empty((string)$response->getBody())) {
@@ -100,11 +122,11 @@ class ConfigProvider extends AbstractProvider
                         unset($args['error']);
                         call_user_func($options['success'], $args);
                     }
-                    Log::info("配置变更：" . (string)$response->getBody());
+                    Log::info("配置变更：" . $response->getBody());
                 }
             }
         }, function ($response) use ($options) {
-            Log::error("长轮询更新配置失败：" . (string)$response);
+            Log::error("长轮询更新配置失败：" . $response);
             if (is_callable($options['error'])) {
                 call_user_func($options['error'], $options);
             }

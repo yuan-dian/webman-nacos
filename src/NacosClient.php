@@ -16,6 +16,7 @@ namespace yuandian\WebmanNacos;
 
 use GuzzleHttp\Promise\Utils;
 use support\Log;
+use Workerman\Coroutine;
 
 class NacosClient
 {
@@ -68,7 +69,34 @@ class NacosClient
         return $config;
     }
 
-    public function Listener(?callable $success = null, ?callable $error = null): void
+    public function listener(?callable $callable = null): void
+    {
+        $listener = \Webman\Config::get('plugin.yuandian.webman-nacos.app.config_listeners', []);
+        foreach ($listener as $key => $item) {
+            Coroutine::create(function () use ($item, $key, $callable) {
+                while (true) {
+                    $options = [
+                        'dataId'     => $item['dataId'] ?? '',
+                        'group'      => $item['group'] ?? '',
+                        'contentMD5' => self::$cacheMd5[$key] ?? null,
+                        'tenant'     => $item['tenant'] ?? null,
+                        'type'       => $item['type'] ?? null,
+                        'configId'   => $key,
+                    ];
+                    $response = $this->client->config->listener($options);
+                    if (!empty((string)$response->getBody())) {
+                        if (is_callable($callable)) {
+                            call_user_func($callable, $options);
+                        }
+                        Log::info("配置变更：" . $response->getBody());
+                    }
+                }
+            });
+        }
+    }
+
+
+    public function listenerAsync(?callable $success = null, ?callable $error = null): void
     {
         $listener = \Webman\Config::get('plugin.yuandian.webman-nacos.app.config_listeners', []);
         $promises = [];
@@ -83,7 +111,7 @@ class NacosClient
                 'success'    => $success,
                 'error'      => $error,
             ];
-            $promises[] = $this->client->config->listener($options);
+            $promises[] = $this->client->config->listenerAsync($options);
         }
         Utils::settle($promises)->wait();
     }

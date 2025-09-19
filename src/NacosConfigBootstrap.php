@@ -76,13 +76,12 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
         });
         // 添加一个延迟，确保订阅完成后才通知就绪
         $timer_id = Timer::add(1, function () use (&$timer_id) {
-            if (!self::$initializedConfig) {
-                // 通知监听进程，当前Worker已准备就绪
-                Client::publish('config_request', []);
-            }
             if (self::$initializedConfig) {
                 Timer::del($timer_id);
+                return;
             }
+            // 通知监听进程，当前Worker已准备就绪
+            Client::publish('worker_ready', []);
         });
     }
 
