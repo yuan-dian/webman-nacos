@@ -12,13 +12,16 @@
 declare(strict_types=1);
 
 return [
-    'enable'                => true,
-    /** 服务地址，多个服务使用,隔开 */
-    'base_uri'              => 'http://127.0.0.1:8848',
-    'username'              => null,
-    'password'              => null,
-    'access_key'            => null,
-    'access_secret'         => null,
+    'enable'        => true,
+    'base_uri'      => 'http://127.0.0.1:8848',
+    'username'      => null,
+    'password'      => null,
+    'access_key'    => null,
+    'access_secret' => null,
+    // 版本，枚举：1.0、2.0、3.0
+    'version'       => '1.0',
+
+    'guzzle_config'         => [],
 
     /** 需要配置监听的进程名称 */
     'listen_processes_name' => ['webman'],

@@ -53,9 +53,6 @@ class Config
             'access_key' => 'string',
             'access_secret' => 'string',
             'guzzle_config' => 'array',
-            'host' => 'string',
-            'port' => 'int',
-            'grpc' => 'array',
             'version' => 'string',
         ])]
         array $config = []
@@ -68,10 +65,7 @@ class Config
         isset($config['access_key']) && $this->accessKey = (string) $config['access_key'];
         isset($config['access_secret']) && $this->accessSecret = (string) $config['access_secret'];
         isset($config['guzzle_config']) && $this->guzzleConfig = (array) $config['guzzle_config'];
-        isset($config['host']) && $this->host = (string) $config['host'];
-        isset($config['port']) && $this->port = (int) $config['port'];
         isset($config['version']) && $this->version = (string) $config['version'];
-        isset($config['grpc']) && $this->grpc = array_replace($this->grpc, $config['grpc']);
     }
 
     public function getBaseUri(): string
@@ -102,21 +96,6 @@ class Config
     public function getGuzzleConfig(): array
     {
         return $this->guzzleConfig;
-    }
-
-    public function getHost(): string
-    {
-        return $this->host;
-    }
-
-    public function getPort(): int
-    {
-        return $this->port;
-    }
-
-    public function getGrpc(): array
-    {
-        return $this->grpc;
     }
 
     public function getVersion(): string
