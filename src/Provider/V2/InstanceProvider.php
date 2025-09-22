@@ -13,6 +13,7 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V2;
 
+use GuzzleHttp\Promise\PromiseInterface;
 use GuzzleHttp\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
 use Psr\Http\Message\ResponseInterface;
@@ -36,6 +37,30 @@ class InstanceProvider extends AbstractProvider
         array $optional = []
     ): ResponseInterface {
         return $this->request('POST', 'nacos/v2/ns/instance', [
+            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+                'serviceName' => $serviceName,
+                'ip'          => $ip,
+                'port'        => $port,
+            ])),
+        ]);
+    }
+
+    public function registerAsync(
+        string $ip,
+        int $port,
+        string $serviceName,
+        #[ArrayShape([
+            'groupName'   => '',
+            'clusterName' => '',
+            'namespaceId' => '',
+            'weight'      => 99.0,
+            'metadata'    => '',
+            'enabled'     => true,
+            'ephemeral'   => false, // 是否临时实例
+        ])]
+        array $optional = []
+    ): PromiseInterface {
+        return $this->requestAsync('POST', 'nacos/v2/ns/instance', [
             RequestOptions::QUERY => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
                 'ip'          => $ip,

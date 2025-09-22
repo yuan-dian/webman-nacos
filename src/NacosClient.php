@@ -16,6 +16,7 @@ namespace yuandian\WebmanNacos;
 
 use GuzzleHttp\Promise\Utils;
 use support\Log;
+use Throwable;
 use Workerman\Coroutine;
 
 class NacosClient
@@ -75,20 +76,24 @@ class NacosClient
         foreach ($listener as $key => $item) {
             Coroutine::create(function () use ($item, $key, $callable) {
                 while (true) {
-                    $options = [
-                        'dataId'     => $item['dataId'] ?? '',
-                        'group'      => $item['group'] ?? '',
-                        'contentMD5' => self::$cacheMd5[$key] ?? null,
-                        'tenant'     => $item['tenant'] ?? null,
-                        'type'       => $item['type'] ?? null,
-                        'configId'   => $key,
-                    ];
-                    $response = $this->client->config->listener($options);
-                    if (!empty((string)$response->getBody())) {
-                        if (is_callable($callable)) {
-                            call_user_func($callable, $options);
+                    try {
+                        $options = [
+                            'dataId'     => $item['dataId'] ?? '',
+                            'group'      => $item['group'] ?? '',
+                            'contentMD5' => self::$cacheMd5[$key] ?? null,
+                            'tenant'     => $item['tenant'] ?? null,
+                            'type'       => $item['type'] ?? null,
+                            'configId'   => $key,
+                        ];
+                        $response = $this->client->config->listener($options);
+                        if (!empty((string)$response->getBody())) {
+                            if (is_callable($callable)) {
+                                call_user_func($callable, $options);
+                            }
+                            Log::info("配置变更：" . $response->getBody());
                         }
-                        Log::info("配置变更：" . $response->getBody());
+                    } catch (Throwable $throwable) {
+                        Log::error("监听配置变更失败：" . $throwable);
                     }
                 }
             });

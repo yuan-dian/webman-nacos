@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace yuandian\WebmanNacos\Process;
 
-use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Promise\Utils;
 use Psr\Http\Message\ResponseInterface;
 use support\Log;
+use Throwable;
 use Workerman\Timer;
 use Workerman\Worker;
 use yuandian\Container\Container;
@@ -40,9 +40,6 @@ class InstanceRegistrarProcess
     protected array $heartbeatTimers = [];
     protected Application $client;
 
-    /** @var int 进程重试间隔 */
-    protected int $retry_interval;
-
     /**
      * @var float
      */
@@ -52,59 +49,45 @@ class InstanceRegistrarProcess
     {
         $this->client = Container::getInstance()->make(NacosClient::class)->getClient();
         $this->heartbeat = (float)config('plugin.yuandian.webman-nacos.app.instance_heartbeat', 5.0);
-        $this->retry_interval = (int)config('plugin.yuandian.webman-nacos.app.process_retry_interval', 5);
     }
+
 
     /**
      * 心跳
      * @param string $name
      * @return void
      */
-    protected function _heartbeat(string $name): void
+    protected function heartbeat(string $name): void
     {
         if (isset($this->instanceRegistrars[$name])) {
             list($serviceName, $ip, $port, $option) = $this->instanceRegistrars[$name];
-            if (isset($option['ephemeral'])) {
-                $option['ephemeral'] = (is_string($option['ephemeral']) ? filter_var(
-                    $option['ephemeral'],
-                    FILTER_VALIDATE_BOOLEAN,
-                    FILTER_NULL_ON_FAILURE
-                ) : (bool)$option['ephemeral']);
-            }
+            $option['ephemeral'] = $option['ephemeral'] ?? false;
             // 仅对非永久实例进行心跳
-            if ($option['ephemeral'] ?? false) {
-                $this->heartbeatTimers[$name] = Timer::add(
-                    $this->heartbeat,
-                    function () use ($name, $serviceName, $ip, $port, $option) {
-                        try {
-                            if (!$this->client->instance->beat(
-                                $serviceName,
-                                array_filter(
-                                    [
-                                        'ip'          => $ip,
-                                        'port'        => $port,
-                                        'serviceName' => $serviceName,
-                                    ] + $option,
-                                    fn($value) => $value !== null
-                                ),
-                                $option['groupName'] ?? null,
-                                $option['namespaceId'] ?? null,
-                                $option['ephemeral'] ?? null,
-                            )) {
-                                Log::error(
-                                    "Nacos instance heartbeat failed: [0].",
-                                    ['name' => $name, 'trace' => []]
-                                );
-                            }
-                        } catch (GuzzleException $exception) {
-                            Log::error(
-                                "Nacos instance heartbeat failed: [{$exception->getCode()}] {$exception->getMessage()}.",
-                                ['name' => $name, 'trace' => $exception->getTrace()]
-                            );
-                        }
-                    }
-                );
+            if (!$option['ephemeral']) {
+                return;
             }
+            $this->heartbeatTimers[$name] = Timer::add(
+                $this->heartbeat,
+                function () use ($name, $serviceName, $ip, $port, $option) {
+                    try {
+                        if (!$this->client->instance->beat(
+                            $serviceName,
+                            [
+                                'ip'          => $ip,
+                                'port'        => $port,
+                                'serviceName' => $option['groupName'] . '@@' . $serviceName,
+                            ],
+                            $option['groupName'] ?? null,
+                            $option['namespaceId'] ?? null,
+                            $option['ephemeral'] ?? null,
+                        )) {
+                            Log::error("Nacos $name instance heartbeat failed");
+                        }
+                    } catch (Throwable $exception) {
+                        Log::error("Nacos instance heartbeat failed: ." . $exception);
+                    }
+                }
+            );
         }
     }
 
@@ -114,39 +97,11 @@ class InstanceRegistrarProcess
     public function onWorkerStart(Worker $worker)
     {
         $worker->count = 1;
-        try {
-            if ($instanceRegistrars = config('plugin.yuandian.webman-nacos.app.instance_registrars', [])) {
-                $promises = [];
-                foreach ($instanceRegistrars as $name => $instanceRegistrar) {
-                    // 拆解配置
-                    list($serviceName, $ip, $port, $option) = $instanceRegistrar;
-                    // 注册
-                    $promises[] = $this->client->instance->registerAsync($ip, $port, $serviceName, $option)
-                        ->then(function (ResponseInterface $response) use ($instanceRegistrar, $name) {
-                            if ($response->getStatusCode() === 200) {
-                                $this->instanceRegistrars[$name] = $instanceRegistrar;
-                                $this->_heartbeat($name);
-                            } else {
-                                Log::error(
-                                    "Naocs instance register failed: [0].",
-                                    ['name' => $name, 'trace' => []]
-                                );
-                            }
-                        }, function (\Exception $exception) use ($instanceRegistrar, $name) {
-                            Log::error(
-                                "Nacos instance register failed: [{$exception->getCode()}] {$exception->getMessage()}.",
-                                ['name' => $name, 'trace' => $exception->getTrace()]
-                            );
-                        });
-                }
-                Utils::settle($promises)->wait();
-            }
-        } catch (\Throwable $exception) {
-            Log::error(
-                "Nacos instance register failed: [{$exception->getCode()}] {$exception->getMessage()}.",
-                ['name' => '#base', 'trace' => $exception->getTrace()]
-            );
+        $instanceRegistrars = config('plugin.yuandian.webman-nacos.app.instance_registrars', []);
+        if (empty($instanceRegistrars)) {
+            return;
         }
+        $this->register($instanceRegistrars);
     }
 
     /**
@@ -172,17 +127,41 @@ class InstanceRegistrarProcess
                         'ephemeral'   => $option['ephemeral'] ?? null
                     ]
                 )) {
-                    Log::error(
-                        "Naocs instance delete failed: [0].",
-                        ['name' => $name, 'trace' => []]
-                    );
+                    Log::error("Naocs $name instance delete failed");
                 }
             }
         } catch (\Throwable $exception) {
-            Log::error(
-                "Nacos instance delete failed: [{$exception->getCode()}] {$exception->getMessage()}.",
-                ['name' => '#base', 'trace' => $exception->getTrace()]
-            );
+            Log::error("Nacos instance delete failed: " . $exception);
+        }
+    }
+
+    public function register(array $instanceRegistrars): void
+    {
+        try {
+            $promises = [];
+            foreach ($instanceRegistrars as $name => $instanceRegistrar) {
+                // 拆解配置
+                list($serviceName, $ip, $port, $option) = $instanceRegistrar;
+                $ephemeral = $option['ephemeral'] ?? false;
+                $enabled = $option['enabled'] ?? false;
+                $option['ephemeral'] = $ephemeral ? 'true' : null;
+                $option['enabled'] = $enabled ? 'true' : null;
+                // 注册
+                $promises[] = $this->client->instance->registerAsync($ip, $port, $serviceName, $option)
+                    ->then(function (ResponseInterface $response) use ($instanceRegistrar, $name) {
+                        if ($response->getStatusCode() === 200) {
+                            $this->instanceRegistrars[$name] = $instanceRegistrar;
+                            $this->heartbeat($name);
+                        } else {
+                            Log::error("Naocs $name instance register  failed ");
+                        }
+                    }, function (\Exception $exception) use ($name) {
+                        Log::error("Naocs $name instance register  failed :" . $exception);
+                    });
+            }
+            Utils::settle($promises)->wait();
+        } catch (\Throwable $exception) {
+            Log::error("Nacos instance delete failed: " . $exception);
         }
     }
 }

@@ -176,7 +176,7 @@ class InstanceProvider extends AbstractProvider
                 'port'        => $beat['port'] ?? null,
                 'groupName'   => $groupName,
                 'namespaceId' => $namespaceId,
-                'ephemeral'   => $ephemeral,
+                'ephemeral'   => $ephemeral ? 'true' : null,
                 'beat'        => !$lightBeatEnabled ? json_encode($beat) : '',
             ]),
         ]);
