@@ -120,7 +120,7 @@ class InstanceProvider extends AbstractProvider
         #[ArrayShape([
             'groupName'   => '',
             'namespaceId' => '',
-            'clusters'    => '', // 集群名称(字
+            'clusters'    => '', // 集群名称
             'healthyOnly' => false,
         ])]
         array $optional = []

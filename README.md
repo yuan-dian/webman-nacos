@@ -24,15 +24,16 @@ Webman-naocs是基于PHP开发的Webman插件生态下的Nacos客户端；
 # 使用
 
 - 自动注入配置类
+
 ```php
 namespace app\config;
 
-use yuandian\WebmanNacos\Annotation\NacosConfiguration;
+use yuandian\Tools\attribute\Alias;use yuandian\WebmanNacos\Annotation\NacosConfiguration;
 
 #[NacosConfiguration("datasource")]
 class Config
 {
-    #[NacosValue('host', '')] // 可以使用NacosValue设置别名与默认值
+    #[Alias('host')] // 可以使用Alias注解设置别名
     public string $url;
     public string $username;
     public string $password;

@@ -32,7 +32,7 @@ class NacosConfigListener
         }
         // 连接到本地Channel服务器
         Client::connect();
-        $Client = Container::getInstance()->make(NacosClient::class);
+        $Client = Container::getInstance()->get(NacosClient::class);
         $config = $Client->pull();
         // 配置变更回调
         $callback = function ($options) use ($Client) {

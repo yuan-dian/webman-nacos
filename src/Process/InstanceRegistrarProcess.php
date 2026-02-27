@@ -47,7 +47,7 @@ class InstanceRegistrarProcess
 
     public function __construct()
     {
-        $this->client = Container::getInstance()->make(NacosClient::class)->getClient();
+        $this->client = Container::getInstance()->get(NacosClient::class)->getClient();
         $this->heartbeat = (float)config('plugin.yuandian.webman-nacos.app.instance_heartbeat', 5.0);
     }
 
@@ -91,9 +91,7 @@ class InstanceRegistrarProcess
         }
     }
 
-    /**
-     * @inheritDoc
-     */
+
     public function onWorkerStart(Worker $worker)
     {
         $worker->count = 1;
@@ -104,9 +102,7 @@ class InstanceRegistrarProcess
         $this->register($instanceRegistrars);
     }
 
-    /**
-     * @inheritDoc
-     */
+
     public function onWorkerStop(Worker $worker)
     {
         try {

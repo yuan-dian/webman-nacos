@@ -70,7 +70,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             self::$cacheMd5[$configId] = $contentMD5;
             $classes = self::$cachedConfigClasses[$configId] ?? [];
             foreach ($classes as $class) {
-                $instance = Container::getInstance()->make($class);
+                $instance = Container::getInstance()->get($class);
                 self::bindProperties($instance, $data['config']);
             }
         });
