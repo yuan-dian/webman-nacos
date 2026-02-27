@@ -24,6 +24,7 @@ Webman-naocs是基于PHP开发的Webman插件生态下的Nacos客户端；
 # 使用
 
 - 自动注入配置类
+- 配置类默认后缀```Config```，可以通过配置文件```config_suffix```参数进行修改
 
 ```php
 namespace app\config;
@@ -31,7 +32,7 @@ namespace app\config;
 use yuandian\Tools\attribute\Alias;use yuandian\WebmanNacos\Annotation\NacosConfiguration;
 
 #[NacosConfiguration("datasource")]
-class Config
+class DatasourceConfig
 {
     #[Alias('host')] // 可以使用Alias注解设置别名
     public string $url;
@@ -42,7 +43,7 @@ class Config
 
 - 获取配置
 ```php
-$config =  \yuandian\Container\Container::getInstance()->get(Config::class);
+$config =  \yuandian\Container\Container::getInstance()->get(DatasourceConfig::class);
 ```
 
 ## 捐献

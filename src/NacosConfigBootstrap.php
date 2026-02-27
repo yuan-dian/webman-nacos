@@ -52,6 +52,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             return;
         }
         self::$initialized = true;
+        
         // 连接到本地Channel服务器
         Client::connect();
         self::processAnnotations();
@@ -93,16 +94,27 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
      */
     private static function processAnnotations(): void
     {
-        $classes = self::findProjectClasses();
+        $classes = NacosConfigFinder::files('*');
 
-        foreach ($classes as $class) {
-            $reflection = new ClassReflector($class);
-            $config = $reflection->getAttribute(NacosConfiguration::class);
+        foreach ($classes as $foundFile) {
+            $meta = $foundFile->meta();
+            $configClass = $meta['class'] ?? null;
+            if (!$configClass) {
+                continue;
+            }
+            if (!class_exists($configClass)) {
+                continue;
+            }
+
+            $ref = new ClassReflector($configClass);
+            if ($ref->isAbstract() || $ref->isInterface()) {
+                continue;
+            }
+            $config = $ref->getAttribute(NacosConfiguration::class);
             if (empty($config)) {
                 continue;
             }
-            $key = $config->configId;
-            self::$cachedConfigClasses[$key][] = $class;
+            self::$cachedConfigClasses[$config->configId][] = $configClass;
         }
     }
 
@@ -152,55 +164,5 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
         }
 
         return $value;
-    }
-
-
-    /**
-     * 扫描需要自动注册的配置类
-     * @return array
-     * @date 2025/5/26 下午2:23
-     * @author 原点 467490186@qq.com
-     */
-    private static function findProjectClasses(): array
-    {
-        $classes = [];
-        $dirs = config('plugin.yuandian.webman-nacos.app.scan_dirs', [app_path() . '/config']);
-
-        foreach ($dirs as $dir) {
-            $iterator = new RecursiveIteratorIterator(
-                new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
-            );
-
-            foreach ($iterator as $file) {
-                if ($file->isFile() && $file->getExtension() === 'php') {
-                    $className = self::getClassNameFromFile($file->getPathname());
-                    if ($className && class_exists($className)) {
-                        $classes[] = $className;
-                    }
-                }
-            }
-        }
-
-        return $classes;
-    }
-
-    /**
-     * 获取类的命名空间
-     * @param string $filePath
-     * @return string|null
-     * @date 2025/5/26 下午2:23
-     * @author 原点 467490186@qq.com
-     */
-    private static function getClassNameFromFile(string $filePath): ?string
-    {
-        $content = file_get_contents($filePath);
-        if (preg_match(
-            '/\bnamespace\s+(.+?);.*?((abstract|final)\s+)?(class|interface)\s+(\w+)/s',
-            $content,
-            $matches
-        )) {
-            return $matches[1] . '\\' . $matches[5];
-        }
-        return null;
     }
 }

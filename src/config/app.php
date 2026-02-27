@@ -25,9 +25,11 @@ return [
 
     /** 需要配置监听的进程名称 */
     'listen_processes_name' => ['webman'],
-
-    /** 需要扫描的配置类目录 */
-    'scan_dirs'             => [app_path() . '/config'],
+   
+    /**
+     * 需要扫描的配置类后缀
+     */
+    'config_suffix'         => 'Config',
 
     /** float 实例心跳间隔 秒 */
     'instance_heartbeat'    => 5.0,
