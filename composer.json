@@ -21,9 +21,9 @@
     "guzzlehttp/guzzle": "^7.4",
     "monolog/monolog": "^2.8",
     "ext-mbstring": "*",
-    "workerman/webman-framework": "^2.1",
-    "yuandian/container": "*",
-    "yuandian/tools": "*",
+    "workerman/webman-framework": "^2.2",
+    "yuandian/container": "^1.0",
+    "yuandian/tools": "^1.0",
     "webman/channel": "^2.1"
   },
   "autoload": {

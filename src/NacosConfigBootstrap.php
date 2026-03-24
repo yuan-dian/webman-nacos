@@ -13,9 +13,6 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
-use FilesystemIterator;
-use RecursiveDirectoryIterator;
-use RecursiveIteratorIterator;
 use support\Log;
 use Throwable;
 use Webman\Channel\Client;
@@ -71,7 +68,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             self::$cacheMd5[$configId] = $contentMD5;
             $classes = self::$cachedConfigClasses[$configId] ?? [];
             foreach ($classes as $class) {
-                $instance = Container::getInstance()->get($class);
+                $instance = Container::getInstance()->make($class);
                 self::bindProperties($instance, $data['config']);
             }
         });
