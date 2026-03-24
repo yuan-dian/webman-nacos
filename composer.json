@@ -22,8 +22,8 @@
     "monolog/monolog": "^2.8",
     "ext-mbstring": "*",
     "workerman/webman-framework": "^2.1",
-    "yuandian/container": "^1.0",
-    "yuandian/tools": "^1.0",
+    "yuandian/container": "*",
+    "yuandian/tools": "*",
     "webman/channel": "^2.1"
   },
   "autoload": {

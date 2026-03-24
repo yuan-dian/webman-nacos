@@ -47,7 +47,7 @@ class InstanceRegistrarProcess
 
     public function __construct()
     {
-        $this->client = Container::getInstance()->get(NacosClient::class)->getClient();
+        $this->client = Container::getInstance()->make(NacosClient::class)->getClient();
         $this->heartbeat = (float)config('plugin.yuandian.webman-nacos.app.instance_heartbeat', 5.0);
     }
 
