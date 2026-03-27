@@ -1,4 +1,5 @@
 <?php
+
 // +----------------------------------------------------------------------
 // |
 // +----------------------------------------------------------------------
@@ -13,10 +14,10 @@ declare(strict_types=1);
 
 namespace yuandian\WebmanNacos\Process;
 
-use GuzzleHttp\Promise\Utils;
 use Psr\Http\Message\ResponseInterface;
 use support\Log;
 use Throwable;
+use Workerman\Coroutine;
 use Workerman\Timer;
 use Workerman\Worker;
 use yuandian\Container\Container;
@@ -28,7 +29,6 @@ use yuandian\WebmanNacos\NacosClient;
  */
 class InstanceRegistrarProcess
 {
-
     /**
      * @var array
      */
@@ -48,7 +48,7 @@ class InstanceRegistrarProcess
     public function __construct()
     {
         $this->client = Container::getInstance()->make(NacosClient::class)->getClient();
-        $this->heartbeat = (float)config('plugin.yuandian.webman-nacos.app.instance_heartbeat', 5.0);
+        $this->heartbeat = (float) config('plugin.yuandian.webman-nacos.app.instance_heartbeat', 5.0);
     }
 
 
@@ -60,8 +60,8 @@ class InstanceRegistrarProcess
     protected function heartbeat(string $name): void
     {
         if (isset($this->instanceRegistrars[$name])) {
-            list($serviceName, $ip, $port, $option) = $this->instanceRegistrars[$name];
-            $option['ephemeral'] = $option['ephemeral'] ?? false;
+            [$serviceName, $ip, $port, $option] = $this->instanceRegistrars[$name];
+            $option['ephemeral'] ??= false;
             // 仅对非永久实例进行心跳
             if (!$option['ephemeral']) {
                 return;
@@ -111,7 +111,7 @@ class InstanceRegistrarProcess
                 if (isset($this->heartbeatTimers[$name])) {
                     Timer::del($this->heartbeatTimers[$name]);
                 }
-                list($serviceName, $ip, $port, $option) = $instanceRegistrar;
+                [$serviceName, $ip, $port, $option] = $instanceRegistrar;
                 // 注销实例
                 if (!$this->client->instance->delete(
                     $serviceName,
@@ -120,7 +120,7 @@ class InstanceRegistrarProcess
                     $port,
                     [
                         'namespaceId' => $option['namespaceId'] ?? null,
-                        'ephemeral'   => $option['ephemeral'] ?? null
+                        'ephemeral'   => $option['ephemeral'] ?? null,
                     ]
                 )) {
                     Log::error("Naocs $name instance delete failed");
@@ -134,28 +134,28 @@ class InstanceRegistrarProcess
     public function register(array $instanceRegistrars): void
     {
         try {
-            $promises = [];
             foreach ($instanceRegistrars as $name => $instanceRegistrar) {
                 // 拆解配置
-                list($serviceName, $ip, $port, $option) = $instanceRegistrar;
+                [$serviceName, $ip, $port, $option] = $instanceRegistrar;
                 $ephemeral = $option['ephemeral'] ?? false;
                 $enabled = $option['enabled'] ?? false;
                 $option['ephemeral'] = $ephemeral ? 'true' : null;
                 $option['enabled'] = $enabled ? 'true' : null;
                 // 注册
-                $promises[] = $this->client->instance->registerAsync($ip, $port, $serviceName, $option)
-                    ->then(function (ResponseInterface $response) use ($instanceRegistrar, $name) {
+                Coroutine::create(function () use ($ip, $port, $serviceName, $option, $instanceRegistrar, $name) {
+                    try {
+                        $response = $this->client->instance->registerAsync($ip, $port, $serviceName, $option)->wait();
                         if ($response->getStatusCode() === 200) {
                             $this->instanceRegistrars[$name] = $instanceRegistrar;
                             $this->heartbeat($name);
                         } else {
                             Log::error("Naocs $name instance register  failed ");
                         }
-                    }, function (\Exception $exception) use ($name) {
+                    } catch (\Exception $exception) {
                         Log::error("Naocs $name instance register  failed :" . $exception);
-                    });
+                    }
+                });
             }
-            Utils::settle($promises)->wait();
         } catch (\Throwable $exception) {
             Log::error("Nacos instance delete failed: " . $exception);
         }

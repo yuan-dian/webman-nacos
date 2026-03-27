@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -13,12 +14,12 @@ namespace yuandian\WebmanNacos;
 
 class Install
 {
-    const WEBMAN_PLUGIN = true;
+    public const WEBMAN_PLUGIN = true;
 
     /**
      * @var array
      */
-    protected static $pathRelation = array('config' => 'config/plugin/yuandian/webman-nacos');
+    protected static $pathRelation = ['config' => 'config/plugin/yuandian/webman-nacos'];
 
     /**
      * Install
@@ -48,7 +49,7 @@ class Install
             if ($pos = strrpos($dest, '/')) {
                 $parent_dir = base_path() . '/' . substr($dest, 0, $pos);
                 if (!is_dir($parent_dir)) {
-                    mkdir($parent_dir, 0777, true);
+                    mkdir($parent_dir, 0o777, true);
                 }
             }
             copy_dir(__DIR__ . "/$source", base_path() . "/$dest");

@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -49,7 +50,7 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             return;
         }
         self::$initialized = true;
-        
+
         // 连接到本地Channel服务器
         Client::connect();
         self::processAnnotations();

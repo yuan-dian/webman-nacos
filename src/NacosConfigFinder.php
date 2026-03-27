@@ -1,4 +1,5 @@
 <?php
+
 declare(strict_types=1);
 // +----------------------------------------------------------------------
 // |
@@ -105,7 +106,7 @@ class NacosConfigFinder
         if (is_dir($appRoot)) {
             $roots[] = [
                 'dir' => $appRoot,
-                'suffix' => (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
+                'suffix' => (string) Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
             ];
         }
         return $roots;
@@ -153,8 +154,8 @@ class NacosConfigFinder
             $roots[] = [
                 'dir' => $pluginAppDir,
                 'suffix' => is_array($pluginAppConfig)
-                    ? (string)($pluginAppConfig['config_suffix'] ?? '')
-                    : (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
+                    ? (string) ($pluginAppConfig['config_suffix'] ?? '')
+                    : (string) Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
             ];
         }
 
@@ -192,8 +193,8 @@ class NacosConfigFinder
         return [[
             'dir' => $pluginAppDir,
             'suffix' => is_array($pluginAppConfig)
-                ? (string)($pluginAppConfig['config_suffix'] ?? '')
-                : (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
+                ? (string) ($pluginAppConfig['config_suffix'] ?? '')
+                : (string) Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
         ]];
     }
 
@@ -228,7 +229,6 @@ class NacosConfigFinder
      */
     protected static function isValidIdentifier(string $name): bool
     {
-        return $name !== '' && (bool)preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name);
+        return $name !== '' && (bool) preg_match('/^[A-Za-z_][A-Za-z0-9_]*$/', $name);
     }
 }
-

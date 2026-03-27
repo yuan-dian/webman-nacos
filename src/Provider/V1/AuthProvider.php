@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -13,7 +14,7 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V1;
 
-use GuzzleHttp\RequestOptions;
+use yuandian\WebmanNacos\Http\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 use yuandian\WebmanNacos\AbstractProvider;
 

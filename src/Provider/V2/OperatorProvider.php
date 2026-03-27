@@ -1,4 +1,5 @@
 <?php
+
 // +----------------------------------------------------------------------
 // |
 // +----------------------------------------------------------------------
@@ -13,7 +14,7 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V2;
 
-use GuzzleHttp\RequestOptions;
+use yuandian\WebmanNacos\Http\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 use yuandian\WebmanNacos\AbstractProvider;
 

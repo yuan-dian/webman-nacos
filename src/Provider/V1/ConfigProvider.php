@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -13,8 +14,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V1;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\RequestOptions;
+use yuandian\WebmanNacos\Http\AsyncResult;
+use yuandian\WebmanNacos\Http\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
 use Psr\Http\Message\ResponseInterface;
 use support\Log;
@@ -101,7 +102,7 @@ class ConfigProvider extends AbstractProvider
             'error'      => 'callable',
         ])]
         array $options = []
-    ): PromiseInterface {
+    ): AsyncResult {
         $config = ($options['dataId'] ?? null) . self::WORD_SEPARATOR
             . ($options['group'] ?? null) . self::WORD_SEPARATOR
             . ($options['contentMD5'] ?? null) . self::WORD_SEPARATOR
@@ -115,7 +116,7 @@ class ConfigProvider extends AbstractProvider
             ],
         ])->then(function ($response) use ($options) {
             if ($response->getStatusCode() === 200) {
-                if (!empty((string)$response->getBody())) {
+                if (!empty((string) $response->getBody())) {
                     if (is_callable($options['success'])) {
                         $args = $options;
                         unset($args['success']);

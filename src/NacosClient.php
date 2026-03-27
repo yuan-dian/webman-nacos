@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -13,8 +14,6 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
-
-use GuzzleHttp\Promise\Utils;
 use support\Log;
 use Throwable;
 use Workerman\Coroutine;
@@ -37,9 +36,7 @@ class NacosClient
         return self::$cacheMd5[$key] ?? '';
     }
 
-    public function __construct(protected Application $client)
-    {
-    }
+    public function __construct(protected Application $client) {}
 
 
     public function getClient(): Application
@@ -58,7 +55,7 @@ class NacosClient
             $tenant = $item['tenant'] ?? null;
             $type = $item['type'] ?? null;
             $response = $this->client->config->get($dataId, $group, $tenant);
-            $content = (string)$response->getBody();
+            $content = (string) $response->getBody();
             self::$cacheMd5[$key] = md5($content);
             if ($response->getStatusCode() !== 200) {
                 Log::error(sprintf('The config of %s read failed from Nacos.', $key));
@@ -86,7 +83,7 @@ class NacosClient
                             'configId'   => $key,
                         ];
                         $response = $this->client->config->listener($options);
-                        if (!empty((string)$response->getBody())) {
+                        if (!empty((string) $response->getBody())) {
                             if (is_callable($callable)) {
                                 call_user_func($callable, $options);
                             }
@@ -104,26 +101,37 @@ class NacosClient
     public function listenerAsync(?callable $success = null, ?callable $error = null): void
     {
         $listener = \Webman\Config::get('plugin.yuandian.webman-nacos.app.config_listeners', []);
-        $promises = [];
         foreach ($listener as $key => $item) {
-            $options = [
-                'dataId'     => $item['dataId'] ?? '',
-                'group'      => $item['group'] ?? '',
-                'contentMD5' => self::$cacheMd5[$key] ?? null,
-                'tenant'     => $item['tenant'] ?? null,
-                'type'       => $item['type'] ?? null,
-                'configId'   => $key,
-                'success'    => $success,
-                'error'      => $error,
-            ];
-            $promises[] = $this->client->config->listenerAsync($options);
+            Coroutine::create(function () use ($item, $key, $success, $error) {
+                try {
+                    $options = [
+                        'dataId'     => $item['dataId'] ?? '',
+                        'group'      => $item['group'] ?? '',
+                        'contentMD5' => self::$cacheMd5[$key] ?? null,
+                        'tenant'     => $item['tenant'] ?? null,
+                        'type'       => $item['type'] ?? null,
+                        'configId'   => $key,
+                    ];
+                    $response = $this->client->config->listenerAsync($options)->wait();
+                    if (!empty((string) $response->getBody())) {
+                        if (is_callable($success)) {
+                            call_user_func($success, $options);
+                        }
+                        Log::info("配置变更：" . $response->getBody());
+                    }
+                } catch (Throwable $throwable) {
+                    Log::error("监听配置变更失败：" . $throwable);
+                    if (is_callable($error)) {
+                        call_user_func($error, $throwable);
+                    }
+                }
+            });
         }
-        Utils::settle($promises)->wait();
     }
 
     public function decode(string $body, ?string $type = null): array|string
     {
-        $type = strtolower((string)$type);
+        $type = strtolower((string) $type);
 
         return match ($type) {
             'json' => json_decode($body, true),
@@ -199,10 +207,10 @@ class NacosClient
     ): array {
         $response = $this->client->instance->list($serviceName, $optional);
         if ($response->getStatusCode() !== 200) {
-            throw new \RuntimeException((string)$response->getBody(), $response->getStatusCode());
+            throw new \RuntimeException((string) $response->getBody(), $response->getStatusCode());
         }
 
-        $data = json_decode((string)$response->getBody(), true);
+        $data = json_decode((string) $response->getBody(), true);
         $hosts = $data['hosts'] ?? [];
         return array_filter($hosts, function ($item) {
             return $item['valid'] ?? false;

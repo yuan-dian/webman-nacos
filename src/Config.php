@@ -45,6 +45,13 @@ class Config
         'http_errors' => false,
     ];
 
+    protected array $httpClientConfig = [
+        'max_conn_per_addr' => 128,
+        'keepalive_timeout' => 15,
+        'connect_timeout' => 30,
+        'timeout' => 30,
+    ];
+
     public function __construct(
         #[ArrayShape([
             'base_uri' => 'string',
@@ -53,6 +60,7 @@ class Config
             'access_key' => 'string',
             'access_secret' => 'string',
             'guzzle_config' => 'array',
+            'http_client_config' => 'array',
             'version' => 'string',
         ])]
         array $config = []
@@ -65,6 +73,7 @@ class Config
         isset($config['access_key']) && $this->accessKey = (string) $config['access_key'];
         isset($config['access_secret']) && $this->accessSecret = (string) $config['access_secret'];
         isset($config['guzzle_config']) && $this->guzzleConfig = (array) $config['guzzle_config'];
+        isset($config['http_client_config']) && $this->httpClientConfig = (array) $config['http_client_config'];
         isset($config['version']) && $this->version = (string) $config['version'];
     }
 
@@ -96,6 +105,11 @@ class Config
     public function getGuzzleConfig(): array
     {
         return $this->guzzleConfig;
+    }
+
+    public function getHttpClientConfig(): array
+    {
+        return $this->httpClientConfig;
     }
 
     public function getVersion(): string

@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -13,19 +14,17 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
-use GuzzleHttp\Client;
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\RequestOptions;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
+use yuandian\WebmanNacos\Http\AsyncResult;
+use yuandian\WebmanNacos\Http\HttpClientAdapter;
+use yuandian\WebmanNacos\Http\RequestOptions;
 
 abstract class AbstractProvider
 {
     use AccessToken;
 
-    public function __construct(protected Application $app, protected Config $config)
-    {
-    }
+    public function __construct(protected Application $app, protected Config $config) {}
 
     public function request(string $method, string|UriInterface $uri, array $options = []): ResponseInterface
     {
@@ -33,7 +32,7 @@ abstract class AbstractProvider
         return $this->requestAsync($method, $uri, $options)->wait();
     }
 
-    public function requestAsync(string $method, string|UriInterface $uri, array $options = []): PromiseInterface
+    public function requestAsync(string $method, string|UriInterface $uri, array $options = []): AsyncResult
     {
         if ($accessKey = $this->config->getAccessKey()) {
             $accessSecret = $this->config->getAccessSecret();
@@ -65,13 +64,13 @@ abstract class AbstractProvider
         return $this->client()->requestAsync($method, $uri, $options);
     }
 
-    public function client(): Client
+    public function client(): HttpClientAdapter
     {
-        $config = array_merge($this->config->getGuzzleConfig(), [
+        $config = array_merge($this->config->getHttpClientConfig(), [
             'base_uri' => $this->config->getBaseUri(),
         ]);
 
-        return new Client($config);
+        return new HttpClientAdapter($config);
     }
 
     protected function checkResponseIsOk(ResponseInterface $response): bool
@@ -80,13 +79,13 @@ abstract class AbstractProvider
             return false;
         }
 
-        return (string)$response->getBody() === 'ok';
+        return (string) $response->getBody() === 'ok';
     }
 
     protected function handleResponse(ResponseInterface $response): array
     {
         $statusCode = $response->getStatusCode();
-        $contents = (string)$response->getBody();
+        $contents = (string) $response->getBody();
 
         if ($statusCode !== 200) {
             throw new \RuntimeException($contents, $statusCode);

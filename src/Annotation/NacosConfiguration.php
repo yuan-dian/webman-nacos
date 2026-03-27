@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -18,7 +19,5 @@ use Attribute;
 #[Attribute(Attribute::TARGET_CLASS)]
 class NacosConfiguration
 {
-    public function __construct(public string $prefix, public string $configId = 'default')
-    {
-    }
+    public function __construct(public string $prefix, public string $configId = 'default') {}
 }

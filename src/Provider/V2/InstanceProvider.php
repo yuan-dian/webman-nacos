@@ -1,4 +1,5 @@
 <?php
+
 // +----------------------------------------------------------------------
 // |
 // +----------------------------------------------------------------------
@@ -13,8 +14,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V2;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\RequestOptions;
+use yuandian\WebmanNacos\Http\AsyncResult;
+use yuandian\WebmanNacos\Http\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
 use Psr\Http\Message\ResponseInterface;
 use yuandian\WebmanNacos\AbstractProvider;
@@ -59,7 +60,7 @@ class InstanceProvider extends AbstractProvider
             'ephemeral'   => false, // 是否临时实例
         ])]
         array $optional = []
-    ): PromiseInterface {
+    ): AsyncResult {
         return $this->requestAsync('POST', 'nacos/v2/ns/instance', [
             RequestOptions::QUERY => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,

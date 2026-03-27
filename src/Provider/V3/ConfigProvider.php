@@ -14,8 +14,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V3;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\RequestOptions;
+use yuandian\WebmanNacos\Http\AsyncResult;
+use yuandian\WebmanNacos\Http\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
 use Psr\Http\Message\ResponseInterface;
 use support\Log;
@@ -101,7 +101,7 @@ class ConfigProvider extends AbstractProvider
             'error'      => 'callable',
         ])]
         array $options = []
-    ): PromiseInterface {
+    ): AsyncResult {
         $config = ($options['dataId'] ?? null) . self::WORD_SEPARATOR
             . ($options['group'] ?? null) . self::WORD_SEPARATOR
             . ($options['contentMD5'] ?? null) . self::WORD_SEPARATOR
@@ -115,18 +115,18 @@ class ConfigProvider extends AbstractProvider
             ],
         ])->then(function ($response) use ($options) {
             if ($response->getStatusCode() === 200) {
-                if (!empty((string)$response->getBody())) {
+                if (!empty((string) $response->getBody())) {
                     if (is_callable($options['success'])) {
                         $args = $options;
                         unset($args['success']);
                         unset($args['error']);
                         call_user_func($options['success'], $args);
                     }
-                    Log::info("配置变更：" . (string)$response->getBody());
+                    Log::info("配置变更：" . (string) $response->getBody());
                 }
             }
         }, function ($response) use ($options) {
-            Log::error("长轮询更新配置失败：" . (string)$response);
+            Log::error("长轮询更新配置失败：" . (string) $response);
             if (is_callable($options['error'])) {
                 call_user_func($options['error'], $options);
             }

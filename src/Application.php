@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -38,9 +39,7 @@ class Application
 
     protected array $providers = [];
 
-    public function __construct(protected Config $conf)
-    {
-    }
+    public function __construct(protected Config $conf) {}
 
     public function __get($name)
     {

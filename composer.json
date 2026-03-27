@@ -1,34 +1,43 @@
 {
-  "name": "yuandian/webman-nacos",
-  "description": "Webman plugin yuandian/webman-nacos",
-  "type": "library",
-  "keywords": [
-    "php",
-    "nacos",
-    "webman"
-  ],
-  "license": "MIT",
-  "authors": [
-    {
-      "name": "yuandian",
-      "email": "467490186@qq.com"
+    "name": "yuandian/webman-nacos",
+    "description": "Webman plugin yuandian/webman-nacos",
+    "type": "library",
+    "keywords": [
+        "php",
+        "nacos",
+        "webman"
+    ],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "yuandian",
+            "email": "467490186@qq.com"
+        }
+    ],
+    "require": {
+        "php": ">=8.1",
+        "ext-json": "*",
+        "monolog/monolog": "^2.8",
+        "ext-mbstring": "*",
+        "workerman/webman-framework": "^2.2",
+        "workerman/http-client": "^3.0",
+        "yuandian/container": "^1.0",
+        "yuandian/tools": "^1.0",
+        "webman/channel": "^2.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "yuandian\\WebmanNacos\\": "src"
+        }
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^13.0",
+        "friendsofphp/php-cs-fixer": "^3.94",
+        "phpstan/phpstan": "^2.1"
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "yuandian\\WebmanNacos\\Tests\\": "tests"
+        }
     }
-  ],
-  "require": {
-    "php": ">=8.1",
-    "ext-json": "*",
-    "guzzlehttp/promises": "^1.5 | ^2.0",
-    "guzzlehttp/guzzle": "^7.4",
-    "monolog/monolog": "^2.8",
-    "ext-mbstring": "*",
-    "workerman/webman-framework": "^2.2",
-    "yuandian/container": "^1.0",
-    "yuandian/tools": "^1.0",
-    "webman/channel": "^2.1"
-  },
-  "autoload": {
-    "psr-4": {
-      "yuandian\\WebmanNacos\\": "src"
-    }
-  }
 }

@@ -1,6 +1,7 @@
 <?php
+
 // +----------------------------------------------------------------------
-// | 
+// |
 // +----------------------------------------------------------------------
 // | @copyright (c) 原点 All rights reserved.
 // +----------------------------------------------------------------------
@@ -40,7 +41,7 @@ class NacosConfigListener
             if ($response->getStatusCode() !== 200) {
                 return;
             }
-            $content = (string)$response->getBody();
+            $content = (string) $response->getBody();
             $contentMD5 = md5($content);
             $Client->setCacheMd5($options['configId'], $contentMD5);
             $config = $Client->decode($content, $options['type'] ?? null);
@@ -51,16 +52,16 @@ class NacosConfigListener
             $data = [
                 'configId'   => $options['configId'],
                 'contentMD5' => $contentMD5,
-                'config'     => $config
+                'config'     => $config,
             ];
             Client::publish($event_name, $data);
         };
         // 监听配置变更
         if (!empty($worker->eventLoop) && in_array(
-                $worker->eventLoop,
-                ['Workerman\Events\Swow', 'Workerman\Events\Swoole'],
-                true
-            )) {
+            $worker->eventLoop,
+            ['Workerman\Events\Swow', 'Workerman\Events\Swoole'],
+            true
+        )) {
             $Client->listener($callback);
         } else {
             Timer::add(30, function () use ($Client, $callback) {
@@ -80,7 +81,7 @@ class NacosConfigListener
                     $data = [
                         'configId'   => $configId,
                         'contentMD5' => $Client->getCacheMd5($configId),
-                        'config'     => $value
+                        'config'     => $value,
                     ];
                     Client::publish($event_name, $data);
                 }
