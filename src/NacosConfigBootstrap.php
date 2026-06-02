@@ -26,6 +26,10 @@ use yuandian\WebmanNacos\Annotation\NacosConfiguration;
 class NacosConfigBootstrap implements \Webman\Bootstrap
 {
     private static array $cachedConfigClasses = [];
+
+    /** @var array<string, array> Stored raw config data per configId */
+    private static array $cachedConfig = [];
+
     private static bool $initialized = false;
     private static bool $initializedConfig = false;
 
@@ -45,11 +49,11 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
     public static function start(?Worker $worker)
     {
         $listen_processes_name = config('plugin.yuandian.webman-nacos.app.listen_processes_name', []);
-        if (self::$initialized || !in_array($worker->name, $listen_processes_name)) {
+        if (self::$initialized || !$worker || !in_array($worker->name, $listen_processes_name)) {
             return;
         }
         self::$initialized = true;
-        
+
         // 连接到本地Channel服务器
         Client::connect();
         self::processAnnotations();
@@ -66,20 +70,27 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
                 return;
             }
             self::$cacheMd5[$configId] = $contentMD5;
+
+            // Cache config for NacosValue::get()
+            self::$cachedConfig[$configId] = $data['config'];
+
             $classes = self::$cachedConfigClasses[$configId] ?? [];
             foreach ($classes as $class) {
                 $instance = Container::getInstance()->make($class);
                 self::bindProperties($instance, $data['config']);
             }
         });
-        // 添加一个延迟，确保订阅完成后才通知就绪
-        $timer_id = Timer::add(1, function () use (&$timer_id) {
+        // 定期宣布就绪，带上 Worker 身份，直到收到初始配置
+        $timer_id = Timer::add(1, function () use ($worker, &$timer_id) {
             if (self::$initializedConfig) {
                 Timer::del($timer_id);
                 return;
             }
-            // 通知监听进程，当前Worker已准备就绪
-            Client::publish('worker_ready', []);
+            Client::publish('worker_ready', [
+                'name'  => $worker->name,
+                'id'    => $worker->id,
+                'total' => $worker->count,
+            ]);
         });
     }
 
@@ -92,14 +103,12 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
     private static function processAnnotations(): void
     {
         $classes = NacosConfigFinder::files('*');
+        self::$cachedConfigClasses = [];
 
         foreach ($classes as $foundFile) {
             $meta = $foundFile->meta();
             $configClass = $meta['class'] ?? null;
-            if (!$configClass) {
-                continue;
-            }
-            if (!class_exists($configClass)) {
+            if (!$configClass || !class_exists($configClass)) {
                 continue;
             }
 
@@ -107,11 +116,12 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
             if ($ref->isAbstract() || $ref->isInterface()) {
                 continue;
             }
-            $config = $ref->getAttribute(NacosConfiguration::class);
-            if (empty($config)) {
-                continue;
+
+            // Scan #[NacosConfiguration]
+            $nacosConfig = $ref->getAttribute(NacosConfiguration::class);
+            if ($nacosConfig) {
+                self::$cachedConfigClasses[$nacosConfig->configId][] = $configClass;
             }
-            self::$cachedConfigClasses[$config->configId][] = $configClass;
         }
     }
 
@@ -162,4 +172,14 @@ class NacosConfigBootstrap implements \Webman\Bootstrap
 
         return $value;
     }
+
+    /**
+     * Get a cached config value by dot-notation key.
+     */
+    public static function getCachedConfig(string $key, mixed $default = null, string $configId = 'default'): mixed
+    {
+        $config = self::$cachedConfig[$configId] ?? [];
+        return self::getConfig($config, $key, $default);
+    }
+
 }

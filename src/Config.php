@@ -1,6 +1,4 @@
 <?php
-
-declare(strict_types=1);
 // +----------------------------------------------------------------------
 // |
 // +----------------------------------------------------------------------
@@ -10,6 +8,8 @@ declare(strict_types=1);
 // +----------------------------------------------------------------------
 // | Date: 2025/9/18
 // +----------------------------------------------------------------------
+
+declare(strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
@@ -34,38 +34,37 @@ class Config
     protected ?string $version = '1.0';
 
     protected array $grpc = [
-        'enable' => true,
+        'enable'    => true,
         'heartbeat' => 10,
     ];
 
-    protected array $guzzleConfig = [
+    protected array $httpConfig = [
         'headers' => [
             'charset' => 'UTF-8',
         ],
-        'http_errors' => false,
     ];
 
     public function __construct(
         #[ArrayShape([
-            'base_uri' => 'string',
-            'username' => 'string',
-            'password' => 'string',
-            'access_key' => 'string',
+            'base_uri'      => 'string',
+            'username'      => 'string',
+            'password'      => 'string',
+            'access_key'    => 'string',
             'access_secret' => 'string',
-            'guzzle_config' => 'array',
-            'version' => 'string',
+            'http_config'   => 'array',
+            'version'       => 'string',
         ])]
         array $config = []
     ) {
         $conf = \Webman\Config::get('plugin.yuandian.webman-nacos.app', []);
         $config = array_merge($conf, $config);
-        isset($config['base_uri']) && $this->baseUri = (string) $config['base_uri'];
-        isset($config['username']) && $this->username = (string) $config['username'];
-        isset($config['password']) && $this->password = (string) $config['password'];
-        isset($config['access_key']) && $this->accessKey = (string) $config['access_key'];
-        isset($config['access_secret']) && $this->accessSecret = (string) $config['access_secret'];
-        isset($config['guzzle_config']) && $this->guzzleConfig = (array) $config['guzzle_config'];
-        isset($config['version']) && $this->version = (string) $config['version'];
+        isset($config['base_uri']) && $this->baseUri = (string)$config['base_uri'];
+        isset($config['username']) && $this->username = (string)$config['username'];
+        isset($config['password']) && $this->password = (string)$config['password'];
+        isset($config['access_key']) && $this->accessKey = (string)$config['access_key'];
+        isset($config['access_secret']) && $this->accessSecret = (string)$config['access_secret'];
+        isset($config['http_config']) && $this->httpConfig = (array)$config['http_config'];
+        isset($config['version']) && $this->version = (string)$config['version'];
     }
 
     public function getBaseUri(): string
@@ -93,9 +92,9 @@ class Config
         return $this->accessSecret;
     }
 
-    public function getGuzzleConfig(): array
+    public function getHttpConfig(): array
     {
-        return $this->guzzleConfig;
+        return $this->httpConfig;
     }
 
     public function getVersion(): string

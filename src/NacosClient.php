@@ -14,7 +14,6 @@ declare (strict_types=1);
 namespace yuandian\WebmanNacos;
 
 
-use GuzzleHttp\Promise\Utils;
 use support\Log;
 use Throwable;
 use Workerman\Coroutine;
@@ -104,7 +103,6 @@ class NacosClient
     public function listenerAsync(?callable $success = null, ?callable $error = null): void
     {
         $listener = \Webman\Config::get('plugin.yuandian.webman-nacos.app.config_listeners', []);
-        $promises = [];
         foreach ($listener as $key => $item) {
             $options = [
                 'dataId'     => $item['dataId'] ?? '',
@@ -116,9 +114,8 @@ class NacosClient
                 'success'    => $success,
                 'error'      => $error,
             ];
-            $promises[] = $this->client->config->listenerAsync($options);
+            $this->client->config->listenerAsync($options);
         }
-        Utils::settle($promises)->wait();
     }
 
     public function decode(string $body, ?string $type = null): array|string
@@ -201,7 +198,6 @@ class NacosClient
         if ($response->getStatusCode() !== 200) {
             throw new \RuntimeException((string)$response->getBody(), $response->getStatusCode());
         }
-
         $data = json_decode((string)$response->getBody(), true);
         $hosts = $data['hosts'] ?? [];
         return array_filter($hosts, function ($item) {

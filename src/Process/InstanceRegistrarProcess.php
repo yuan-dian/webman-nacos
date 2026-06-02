@@ -13,10 +13,10 @@ declare(strict_types=1);
 
 namespace yuandian\WebmanNacos\Process;
 
-use GuzzleHttp\Promise\Utils;
-use Psr\Http\Message\ResponseInterface;
 use support\Log;
 use Throwable;
+use Workerman\Coroutine;
+use Workerman\Http\Response;
 use Workerman\Timer;
 use Workerman\Worker;
 use yuandian\Container\Container;
@@ -34,10 +34,6 @@ class InstanceRegistrarProcess
      */
     protected array $instanceRegistrars = [];
 
-    /**
-     * @var array
-     */
-    protected array $heartbeatTimers = [];
     protected Application $client;
 
     /**
@@ -53,42 +49,43 @@ class InstanceRegistrarProcess
 
 
     /**
-     * 心跳
+     * 心跳（协程模式，非阻塞）
      * @param string $name
      * @return void
      */
     protected function heartbeat(string $name): void
     {
-        if (isset($this->instanceRegistrars[$name])) {
-            list($serviceName, $ip, $port, $option) = $this->instanceRegistrars[$name];
-            $option['ephemeral'] = $option['ephemeral'] ?? false;
-            // 仅对非永久实例进行心跳
-            if (!$option['ephemeral']) {
-                return;
-            }
-            $this->heartbeatTimers[$name] = Timer::add(
-                $this->heartbeat,
-                function () use ($name, $serviceName, $ip, $port, $option) {
-                    try {
-                        if (!$this->client->instance->beat(
-                            $serviceName,
-                            [
-                                'ip'          => $ip,
-                                'port'        => $port,
-                                'serviceName' => $option['groupName'] . '@@' . $serviceName,
-                            ],
-                            $option['groupName'] ?? null,
-                            $option['namespaceId'] ?? null,
-                            $option['ephemeral'] ?? null,
-                        )) {
-                            Log::error("Nacos $name instance heartbeat failed");
-                        }
-                    } catch (Throwable $exception) {
-                        Log::error("Nacos instance heartbeat failed: ." . $exception);
-                    }
-                }
-            );
+        if (!isset($this->instanceRegistrars[$name])) {
+            return;
         }
+        [$serviceName, $ip, $port, $option] = $this->instanceRegistrars[$name];
+        $option['ephemeral'] = $option['ephemeral'] ?? false;
+        // 仅对非永久实例进行心跳
+        if (!$option['ephemeral']) {
+            return;
+        }
+        Coroutine::create(function () use ($name, $serviceName, $ip, $port, $option) {
+            while (true) {
+                try {
+                    if (!$this->client->instance->beat(
+                        $serviceName,
+                        [
+                            'ip'          => $ip,
+                            'port'        => $port,
+                            'serviceName' => $option['groupName'] . '@@' . $serviceName,
+                        ],
+                        $option['groupName'] ?? null,
+                        $option['namespaceId'] ?? null,
+                        $option['ephemeral'] ?? null,
+                    )) {
+                        Log::error("Nacos $name instance heartbeat failed");
+                    }
+                } catch (Throwable $exception) {
+                    Log::error("Nacos instance heartbeat failed: " . $exception);
+                }
+                Timer::sleep($this->heartbeat);
+            }
+        });
     }
 
 
@@ -107,11 +104,7 @@ class InstanceRegistrarProcess
     {
         try {
             foreach ($this->instanceRegistrars as $name => $instanceRegistrar) {
-                // 移除心跳
-                if (isset($this->heartbeatTimers[$name])) {
-                    Timer::del($this->heartbeatTimers[$name]);
-                }
-                list($serviceName, $ip, $port, $option) = $instanceRegistrar;
+                [$serviceName, $ip, $port, $option] = $instanceRegistrar;
                 // 注销实例
                 if (!$this->client->instance->delete(
                     $serviceName,
@@ -134,28 +127,32 @@ class InstanceRegistrarProcess
     public function register(array $instanceRegistrars): void
     {
         try {
-            $promises = [];
             foreach ($instanceRegistrars as $name => $instanceRegistrar) {
                 // 拆解配置
                 list($serviceName, $ip, $port, $option) = $instanceRegistrar;
                 $ephemeral = $option['ephemeral'] ?? false;
                 $enabled = $option['enabled'] ?? false;
-                $option['ephemeral'] = $ephemeral ? 'true' : null;
-                $option['enabled'] = $enabled ? 'true' : null;
+                $option['ephemeral'] = $ephemeral;
+                $option['enabled'] = $enabled;
                 // 注册
-                $promises[] = $this->client->instance->registerAsync($ip, $port, $serviceName, $option)
-                    ->then(function (ResponseInterface $response) use ($instanceRegistrar, $name) {
+                $this->client->instance->registerAsync(
+                    $ip,
+                    $port,
+                    $serviceName,
+                    $option,
+                    function (Response $response) use ($instanceRegistrar, $name) {
                         if ($response->getStatusCode() === 200) {
                             $this->instanceRegistrars[$name] = $instanceRegistrar;
                             $this->heartbeat($name);
                         } else {
                             Log::error("Naocs $name instance register  failed ");
                         }
-                    }, function (\Exception $exception) use ($name) {
+                    },
+                    function (\Exception $exception) use ($name) {
                         Log::error("Naocs $name instance register  failed :" . $exception);
-                    });
+                    }
+                );
             }
-            Utils::settle($promises)->wait();
         } catch (\Throwable $exception) {
             Log::error("Nacos instance delete failed: " . $exception);
         }

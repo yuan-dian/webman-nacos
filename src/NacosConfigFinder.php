@@ -1,5 +1,4 @@
 <?php
-declare(strict_types=1);
 // +----------------------------------------------------------------------
 // |
 // +----------------------------------------------------------------------
@@ -9,6 +8,8 @@ declare(strict_types=1);
 // +----------------------------------------------------------------------
 // | Date: 2026/2/27
 // +----------------------------------------------------------------------
+
+declare(strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
@@ -104,7 +105,7 @@ class NacosConfigFinder
         $appRoot = app_path();
         if (is_dir($appRoot)) {
             $roots[] = [
-                'dir' => $appRoot,
+                'dir'    => $appRoot,
                 'suffix' => (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
             ];
         }
@@ -151,7 +152,7 @@ class NacosConfigFinder
             }
 
             $roots[] = [
-                'dir' => $pluginAppDir,
+                'dir'    => $pluginAppDir,
                 'suffix' => is_array($pluginAppConfig)
                     ? (string)($pluginAppConfig['config_suffix'] ?? '')
                     : (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
@@ -189,12 +190,14 @@ class NacosConfigFinder
             throw new InvalidArgumentException("Plugin app directory not found: plugin/$plugin/app");
         }
 
-        return [[
-            'dir' => $pluginAppDir,
-            'suffix' => is_array($pluginAppConfig)
-                ? (string)($pluginAppConfig['config_suffix'] ?? '')
-                : (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
-        ]];
+        return [
+            [
+                'dir'    => $pluginAppDir,
+                'suffix' => is_array($pluginAppConfig)
+                    ? (string)($pluginAppConfig['config_suffix'] ?? '')
+                    : (string)Config::get('plugin.yuandian.webman-nacos.config_suffix', ''),
+            ]
+        ];
     }
 
     /**

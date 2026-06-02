@@ -14,10 +14,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V3;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
-use Psr\Http\Message\ResponseInterface;
+use Workerman\Http\Response;
 use yuandian\WebmanNacos\AbstractProvider;
 
 class InstanceProvider extends AbstractProvider
@@ -36,9 +34,9 @@ class InstanceProvider extends AbstractProvider
             'ephemeral'   => false, // 是否临时实例
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('POST', 'nacos/v3/admin/ns/instance', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
                 'ip'          => $ip,
                 'port'        => $port,
@@ -59,14 +57,18 @@ class InstanceProvider extends AbstractProvider
             'enabled'     => true,
             'ephemeral'   => false, // 是否临时实例
         ])]
-        array $optional = []
-    ): PromiseInterface {
-        return $this->requestAsync('POST', 'nacos/v3/admin/ns/instance', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+        array $optional = [],
+        ?callable $success = null,
+        ?callable $error = null,
+    ): void {
+        $this->requestAsync('POST', 'nacos/v3/admin/ns/instance', [
+            'query'   => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
                 'ip'          => $ip,
                 'port'        => $port,
             ])),
+            'success' => $success,
+            'error'   => $error,
         ]);
     }
 
@@ -81,9 +83,9 @@ class InstanceProvider extends AbstractProvider
             'ephemeral'   => false,
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('DELETE', 'nacos/v3/admin/ns/instance', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
                 'groupName'   => $groupName,
                 'ip'          => $ip,
@@ -106,9 +108,9 @@ class InstanceProvider extends AbstractProvider
             'ephemeral'   => false,
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('PUT', 'nacos/v3/admin/ns/instance', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
                 'ip'          => $ip,
                 'port'        => $port,
@@ -125,9 +127,9 @@ class InstanceProvider extends AbstractProvider
             'healthyOnly' => false,
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('GET', 'nacos/v3/admin/ns/instance/list', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
             ])),
         ]);
@@ -145,9 +147,9 @@ class InstanceProvider extends AbstractProvider
             'ephemeral'   => false,
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('GET', 'nacos/v3/admin/ns/instance', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'ip'          => $ip,
                 'port'        => $port,
                 'serviceName' => $serviceName,
@@ -169,9 +171,9 @@ class InstanceProvider extends AbstractProvider
         ?string $namespaceId = null,
         ?bool $ephemeral = null,
         bool $lightBeatEnabled = false
-    ): ResponseInterface {
+    ): Response {
         return $this->request('PUT', 'nacos/v3/admin/ns/instance/beat', [
-            RequestOptions::QUERY => $this->filter([
+            'query' => $this->filter([
                 'serviceName' => $serviceName,
                 'ip'          => $beat['ip'] ?? null,
                 'port'        => $beat['port'] ?? null,
@@ -194,9 +196,9 @@ class InstanceProvider extends AbstractProvider
             'clusterName' => '',
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('PUT', 'nacos/v3/admin/ns/health/instance', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'ip'          => $ip,
                 'port'        => $port,
                 'serviceName' => $serviceName,

@@ -21,7 +21,7 @@ return [
     // 版本，枚举：1.0、2.0、3.0
     'version'       => '1.0',
 
-    'guzzle_config'         => [],
+    'http_config'           => [],
 
     /** 需要配置监听的进程名称 */
     'listen_processes_name' => ['webman'],
@@ -56,7 +56,7 @@ return [
      * 实例注册器
      */
     'instance_registrars'   => [
-        'main' => [
+        'default' => [
             /** serviceName */
             config('app.name', 'webman'),
 

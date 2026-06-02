@@ -27,14 +27,16 @@ trait AccessToken
         if ($username === null || $password === null) {
             return null;
         }
-
-        if (! $this->isExpired()) {
+        if (!$this->isExpired()) {
             return $this->accessToken;
         }
-
-        $result = $this->handleResponse(
-            $this->app->auth->login($username, $password)
-        );
+        $url = rtrim($this->config->getBaseUri(), '/') . '/nacos/v1/auth/users/login';
+        $url .= '?username=' . urlencode($username);
+        $response = $this->client()->request($url, [
+            'method' => 'POST',
+            'data'   => ['password' => $password],
+        ]);
+        $result = $this->handleResponse($response);
 
         $this->accessToken = $result['accessToken'];
         $this->expireTime = $result['tokenTtl'] + time();

@@ -14,9 +14,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V2;
 
-use GuzzleHttp\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
-use Psr\Http\Message\ResponseInterface;
+use Workerman\Http\Response;
 use yuandian\WebmanNacos\AbstractProvider;
 
 class ServiceProvider extends AbstractProvider
@@ -31,9 +30,9 @@ class ServiceProvider extends AbstractProvider
             'selector'         => '', // json字符串
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('POST', 'nacos/v2/ns/service', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
             ])),
         ]);
@@ -43,9 +42,9 @@ class ServiceProvider extends AbstractProvider
         string $serviceName,
         ?string $groupName = null,
         ?string $namespaceId = null
-    ): ResponseInterface {
+    ): Response {
         return $this->request('DELETE', 'nacos/v2/ns/service', [
-            RequestOptions::QUERY => $this->filter([
+            'query' => $this->filter([
                 'serviceName' => $serviceName,
                 'groupName'   => $groupName,
                 'namespaceId' => $namespaceId,
@@ -63,9 +62,9 @@ class ServiceProvider extends AbstractProvider
             'selector'         => '', // json字符串
         ])]
         array $optional = []
-    ): ResponseInterface {
+    ): Response {
         return $this->request('PUT', 'nacos/v2/ns/service', [
-            RequestOptions::QUERY => $this->filter(array_merge($optional, [
+            'query' => $this->filter(array_merge($optional, [
                 'serviceName' => $serviceName,
             ])),
         ]);
@@ -75,9 +74,9 @@ class ServiceProvider extends AbstractProvider
         string $serviceName,
         ?string $groupName = null,
         ?string $namespaceId = null
-    ): ResponseInterface {
+    ): Response {
         return $this->request('GET', 'nacos/v2/ns/service', [
-            RequestOptions::QUERY => $this->filter([
+            'query' => $this->filter([
                 'serviceName' => $serviceName,
                 'groupName'   => $groupName,
                 'namespaceId' => $namespaceId,
@@ -90,9 +89,9 @@ class ServiceProvider extends AbstractProvider
         int $pageSize,
         ?string $groupName = null,
         ?string $namespaceId = null
-    ): ResponseInterface {
+    ): Response {
         return $this->request('GET', 'nacos/v2/ns/service/list', [
-            RequestOptions::QUERY => $this->filter([
+            'query' => $this->filter([
                 'pageNo'      => $pageNo,
                 'pageSize'    => $pageSize,
                 'groupName'   => $groupName,

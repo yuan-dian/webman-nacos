@@ -14,11 +14,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V3;
 
-use GuzzleHttp\Promise\PromiseInterface;
-use GuzzleHttp\RequestOptions;
 use JetBrains\PhpStorm\ArrayShape;
-use Psr\Http\Message\ResponseInterface;
-use support\Log;
+use Workerman\Http\Response;
 use yuandian\WebmanNacos\AbstractProvider;
 
 class ConfigProvider extends AbstractProvider
@@ -27,10 +24,10 @@ class ConfigProvider extends AbstractProvider
 
     public const LINE_SEPARATOR = "\x01";
 
-    public function get(string $dataId, string $group, ?string $tenant = null): ResponseInterface
+    public function get(string $dataId, string $group, ?string $tenant = null): Response
     {
         return $this->request('GET', 'nacos/v3/admin/cs/config', [
-            RequestOptions::QUERY => $this->filter([
+            'query' => $this->filter([
                 'dataId' => $dataId,
                 'group'  => $group,
                 'tenant' => $tenant,
@@ -44,9 +41,9 @@ class ConfigProvider extends AbstractProvider
         string $content,
         ?string $type = null,
         ?string $tenant = null
-    ): ResponseInterface {
+    ): Response {
         return $this->request('POST', 'nacos/v3/admin/cs/config', [
-            RequestOptions::FORM_PARAMS => $this->filter([
+            'form_params' => $this->filter([
                 'dataId'  => $dataId,
                 'group'   => $group,
                 'tenant'  => $tenant,
@@ -56,10 +53,10 @@ class ConfigProvider extends AbstractProvider
         ]);
     }
 
-    public function delete(string $dataId, string $group, ?string $tenant = null): ResponseInterface
+    public function delete(string $dataId, string $group, ?string $tenant = null): Response
     {
         return $this->request('DELETE', 'nacos/v3/admin/cs/config', [
-            RequestOptions::QUERY => $this->filter([
+            'query' => $this->filter([
                 'dataId' => $dataId,
                 'group'  => $group,
                 'tenant' => $tenant,
@@ -69,22 +66,22 @@ class ConfigProvider extends AbstractProvider
 
     public function listener(
         #[ArrayShape([
-            'dataId' => 'string',
-            'group' => 'string',
+            'dataId'     => 'string',
+            'group'      => 'string',
             'contentMD5' => 'string', // md5(file_get_contents($configPath))
-            'tenant' => 'string',
+            'tenant'     => 'string',
         ])]
         array $options = []
-    ): ResponseInterface {
+    ): Response {
         $config = ($options['dataId'] ?? null) . self::WORD_SEPARATOR
             . ($options['group'] ?? null) . self::WORD_SEPARATOR
             . ($options['contentMD5'] ?? null) . self::WORD_SEPARATOR
             . ($options['tenant'] ?? null) . self::LINE_SEPARATOR;
         return $this->request('POST', 'nacos/v3/admin/cs/config/listener', [
-            RequestOptions::QUERY => [
+            'query'   => [
                 'Listening-Configs' => $config,
             ],
-            RequestOptions::HEADERS => [
+            'headers' => [
                 'Long-Pulling-Timeout' => 30000,
             ],
         ]);
@@ -101,35 +98,30 @@ class ConfigProvider extends AbstractProvider
             'error'      => 'callable',
         ])]
         array $options = []
-    ): PromiseInterface {
+    ): void {
         $config = ($options['dataId'] ?? null) . self::WORD_SEPARATOR
             . ($options['group'] ?? null) . self::WORD_SEPARATOR
             . ($options['contentMD5'] ?? null) . self::WORD_SEPARATOR
             . ($options['tenant'] ?? null) . self::LINE_SEPARATOR;
-        return $this->requestAsync('POST', 'nacos/v3/admin/cs/config/listener', [
-            RequestOptions::QUERY   => [
-                'Listening-Configs' => $config,
-            ],
-            RequestOptions::HEADERS => [
-                'Long-Pulling-Timeout' => 30000,
-            ],
-        ])->then(function ($response) use ($options) {
-            if ($response->getStatusCode() === 200) {
-                if (!empty((string)$response->getBody())) {
+        $this->requestAsync('POST', 'nacos/v3/admin/cs/config/listener', [
+            'query'   => ['Listening-Configs' => $config],
+            'headers' => ['Long-Pulling-Timeout' => 30000],
+            'success' => function ($response) use ($options) {
+                if ($response->getStatusCode() === 200 && !empty((string)$response->getBody())) {
                     if (is_callable($options['success'])) {
                         $args = $options;
-                        unset($args['success']);
-                        unset($args['error']);
+                        unset($args['success'], $args['error']);
                         call_user_func($options['success'], $args);
                     }
-                    Log::info("配置变更：" . (string)$response->getBody());
+                    \support\Log::info("配置变更：" . (string)$response->getBody());
                 }
-            }
-        }, function ($response) use ($options) {
-            Log::error("长轮询更新配置失败：" . (string)$response);
-            if (is_callable($options['error'])) {
-                call_user_func($options['error'], $options);
-            }
-        });
+            },
+            'error'   => function ($exception) use ($options) {
+                \support\Log::error("长轮询更新配置失败：" . $exception);
+                if (is_callable($options['error'])) {
+                    call_user_func($options['error'], $options);
+                }
+            },
+        ]);
     }
 }

@@ -17,14 +17,13 @@
   "require": {
     "php": ">=8.1",
     "ext-json": "*",
-    "guzzlehttp/promises": "^1.5 | ^2.0",
-    "guzzlehttp/guzzle": "^7.4",
-    "monolog/monolog": "^2.8",
     "ext-mbstring": "*",
+    "monolog/monolog": "^2.8",
     "workerman/webman-framework": "^2.2",
     "yuandian/container": "^1.0",
     "yuandian/tools": "^1.0",
-    "webman/channel": "^2.1"
+    "webman/channel": "^2.1",
+    "workerman/http-client": "^3.1"
   },
   "autoload": {
     "psr-4": {

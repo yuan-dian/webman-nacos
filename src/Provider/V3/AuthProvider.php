@@ -14,21 +14,16 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos\Provider\V3;
 
-use GuzzleHttp\RequestOptions;
-use Psr\Http\Message\ResponseInterface;
+use Workerman\Http\Response;
 use yuandian\WebmanNacos\AbstractProvider;
 
 class AuthProvider extends AbstractProvider
 {
-    public function login(string $username, string $password): ResponseInterface
+    public function login(string $username, string $password): Response
     {
-        return $this->client()->request('POST', 'nacos/v3/auth/user/login', [
-            RequestOptions::QUERY       => [
-                'username' => $username,
-            ],
-            RequestOptions::FORM_PARAMS => [
-                'password' => $password,
-            ],
+        return $this->request('POST', 'nacos/v3/auth/user/login', [
+            'query'       => ['username' => $username],
+            'form_params' => ['password' => $password],
         ]);
     }
 }

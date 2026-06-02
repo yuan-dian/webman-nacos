@@ -21,8 +21,8 @@ use yuandian\WebmanNacos\NacosClient;
 
 class NacosConfigListener
 {
-    // 工作进程就绪状态
-    private static bool $workerReady = false;
+    /** @var array<string, array{total: int, ids: array<int, bool>}> Registered workers per process name */
+    private static array $registeredWorkers = [];
 
     public function onWorkerStart(Worker $worker)
     {
@@ -55,35 +55,42 @@ class NacosConfigListener
             ];
             Client::publish($event_name, $data);
         };
-        // 监听配置变更
-        if (!empty($worker->eventLoop) && in_array(
-                $worker->eventLoop,
-                ['Workerman\Events\Swow', 'Workerman\Events\Swoole'],
-                true
-            )) {
-            $Client->listener($callback);
-        } else {
-            Timer::add(30, function () use ($Client, $callback) {
-                $Client->listenerAsync($callback);
-            });
-        }
-        // 订阅worker启动事件
-        Client::on('worker_ready', function () {
-            self::$workerReady = true;
+        // 使用协程监听配置变更（Workerman\Http\Client 在协程模式下非阻塞）
+        $Client->listener($callback);
+        // 订阅 Worker 就绪事件，统计已就绪进程数
+        Client::on('worker_ready', function ($data) {
+            $name = $data['name'] ?? '';
+            $id = $data['id'] ?? 0;
+            $total = $data['total'] ?? 0;
+            if (empty($name) || $total <= 0) {
+                return;
+            }
+            if (!isset(self::$registeredWorkers[$name])) {
+                self::$registeredWorkers[$name] = ['total' => $total, 'ids' => []];
+            }
+            self::$registeredWorkers[$name]['ids'][$id] = true;
         });
-        // 添加一个定时器，确保订阅完成后才通知就绪
+        // 定时检查所有 Worker 是否就绪，全部就绪后才推送初始配置
         $timer_id = Timer::add(1, function () use (&$timer_id, $config, $Client) {
-            if (self::$workerReady) {
-                Timer::del($timer_id);
-                foreach ($config as $configId => $value) {
-                    $event_name = 'nacos_config_update';
-                    $data = [
-                        'configId'   => $configId,
-                        'contentMD5' => $Client->getCacheMd5($configId),
-                        'config'     => $value
-                    ];
-                    Client::publish($event_name, $data);
+            if (empty(self::$registeredWorkers)) {
+                return;
+            }
+            // 检查所有进程类型的 Worker 是否全部就绪
+            foreach (self::$registeredWorkers as $name => $info) {
+                if (count($info['ids']) < $info['total']) {
+                    return; // 还有 Worker 未就绪
                 }
+            }
+            // 全部就绪，推送初始配置
+            Timer::del($timer_id);
+            foreach ($config as $configId => $value) {
+                $event_name = 'nacos_config_update';
+                $data = [
+                    'configId'   => $configId,
+                    'contentMD5' => $Client->getCacheMd5($configId),
+                    'config'     => $value
+                ];
+                Client::publish($event_name, $data);
             }
         });
     }
