@@ -13,6 +13,8 @@ declare (strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
+use Workerman\Coroutine;
+
 trait AccessToken
 {
     private ?string $accessToken = null;
@@ -27,15 +29,26 @@ trait AccessToken
         if ($username === null || $password === null) {
             return null;
         }
+
         if (!$this->isExpired()) {
             return $this->accessToken;
         }
+
+        // Direct HTTP request to avoid circular:
         $url = rtrim($this->config->getBaseUri(), '/') . '/nacos/v1/auth/users/login';
         $url .= '?username=' . urlencode($username);
-        $response = $this->client()->request($url, [
-            'method' => 'POST',
-            'data'   => ['password' => $password],
-        ]);
+
+        if (Coroutine::isCoroutine()) {
+            $response = $this->asyncClient()->request($url, [
+                'method' => 'POST',
+                'data'   => ['password' => $password],
+            ]);
+        } else {
+            $toolsResponse = $this->syncClient()->post($url, [
+                'form' => ['password' => $password],
+            ]);
+            $response = $this->toWorkermanResponse($toolsResponse);
+        }
         $result = $this->handleResponse($response);
 
         $this->accessToken = $result['accessToken'];

@@ -12,55 +12,114 @@ declare(strict_types=1);
 
 namespace yuandian\WebmanNacos;
 
+use Workerman\Coroutine;
 use Workerman\Http\Client;
 use Workerman\Http\Response;
+use yuandian\Tools\http\HttpClient as SyncClient;
 
 abstract class AbstractProvider
 {
     use AccessToken;
 
-    private static ?Client $httpClient = null;
+    private static ?Client $asyncHttpClient = null;
+    private static ?SyncClient $syncHttpClient = null;
 
     public function __construct(protected Application $app, protected Config $config)
     {
     }
 
     /**
-     * Get or create the shared Workerman\Http\Client singleton.
+     * Get or create the shared Workerman\Http\Client singleton (for async requests).
      */
-    protected function client(): Client
+    protected function asyncClient(): Client
     {
-        if (self::$httpClient === null) {
+        if (self::$asyncHttpClient === null) {
             $httpConfig = $this->config->getHttpConfig();
-            self::$httpClient = new Client($httpConfig);
+            self::$asyncHttpClient = new Client($httpConfig);
         }
-        return self::$httpClient;
+        return self::$asyncHttpClient;
     }
 
     /**
-     * Synchronous request (coroutine mode — non-blocking in Fiber/Swoole/Swow).
-     * No success/error callbacks = Workerman returns Response directly (fiber-aware).
+     * Get or create the shared yuandian/tools HttpClient singleton (for sync requests).
+     * Uses curl, works in any context (no coroutine required).
+     */
+    protected function syncClient(): SyncClient
+    {
+        if (self::$syncHttpClient === null) {
+            $httpConfig = $this->config->getHttpConfig();
+            self::$syncHttpClient = SyncClient::create($httpConfig);
+        }
+        return self::$syncHttpClient;
+    }
+
+    /**
+     * Wrap yuandian/tools Response into Workerman\Http\Response for type consistency.
+     */
+    protected function toWorkermanResponse(\yuandian\Tools\http\Response $response): Response
+    {
+        return new Response(
+            $response->getStatusCode(),
+            $response->getHeaders(),
+            $response->getBody()
+        );
+    }
+
+    /**
+     * Synchronous request via yuandian/tools HttpClient (curl).
+     * Works in any context — no coroutine required.
+     * Returns Workerman\Http\Response for type consistency across providers.
      */
     public function request(string $method, string $uri, array $options = []): Response
     {
-        $url = $this->buildUrl($uri);
-        $options['method'] = $method;
-        $options = $this->init($uri, $options);
-        $options = $this->normalizeOptions($url, $options);
-        return $this->client()->request($url, $options);
+        // 判断协程环境直接使用Workerman\Http\Client非阻塞客户端
+        if (Coroutine::isCoroutine()) {
+            return $this->requestAsync($method, $uri, $options);
+        } else {
+            $url = $this->buildUrl($uri);
+            $options['method'] = $method;
+            $options = $this->init($uri, $options);
+            $options = $this->normalizeOptions($url, $options);
+            // Map options to yuandian/tools format
+            $toolsOptions = [];
+            if (isset($options['headers'])) {
+                $toolsOptions['headers'] = $options['headers'];
+            }
+            if (isset($options['form_params'])) {
+                $toolsOptions['form'] = $options['form_params'];
+            }
+            if (isset($options['body'])) {
+                $toolsOptions['body'] = $options['body'];
+            }
+
+            return $this->toWorkermanResponse(
+                $this->syncClient()->request($method, $url, $toolsOptions)
+            );
+        }
     }
 
     /**
-     * Asynchronous request (callback mode).
+     * Asynchronous request via Workerman\Http\Client (callback mode).
      * Callbacks passed via $options['success'] and $options['error'].
      */
-    public function requestAsync(string $method, string $uri, array $options = []): void
+    public function requestAsync(string $method, string $uri, array $options = []): mixed
     {
         $url = $this->buildUrl($uri);
         $options['method'] = $method;
         $options = $this->init($uri, $options);
         $options = $this->normalizeOptions($url, $options);
-        $this->client()->request($url, $options);
+
+        // Map options to Workerman format
+        if (isset($options['form_params'])) {
+            $options['data'] = $options['form_params'];
+            unset($options['form_params']);
+        }
+        if (isset($options['body'])) {
+            $options['data'] = $options['body'];
+            unset($options['body']);
+        }
+
+        return $this->asyncClient()->request($url, $options);
     }
 
     /**
@@ -72,10 +131,8 @@ abstract class AbstractProvider
     }
 
     /**
-     * Normalize options for Workerman\Http\Client:
+     * Normalize options common to both sync and async clients:
      * - 'query' → append to URL as query string (bool values → 'true'/'false')
-     * - 'form_params' → rename to 'data'
-     * - 'body' → rename to 'data'
      */
     protected function normalizeOptions(string &$url, array $options): array
     {
@@ -90,18 +147,6 @@ abstract class AbstractProvider
             $url .= $separator . http_build_query($options['query']);
         }
         unset($options['query']);
-
-        // Move form_params to data (Workerman uses 'data' key)
-        if (isset($options['form_params'])) {
-            $options['data'] = $options['form_params'];
-            unset($options['form_params']);
-        }
-
-        // Move body string to data
-        if (isset($options['body'])) {
-            $options['data'] = $options['body'];
-            unset($options['body']);
-        }
 
         return $options;
     }
@@ -143,6 +188,7 @@ abstract class AbstractProvider
     {
         $statusCode = $response->getStatusCode();
         $contents = (string)$response->getBody();
+
         if ($statusCode !== 200) {
             throw new \RuntimeException($contents, $statusCode);
         }

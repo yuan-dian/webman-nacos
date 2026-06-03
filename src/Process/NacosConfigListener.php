@@ -32,31 +32,6 @@ class NacosConfigListener
         }
         // 连接到本地Channel服务器
         Client::connect();
-        $Client = Container::getInstance()->make(NacosClient::class);
-        $config = $Client->pull();
-        // 配置变更回调
-        $callback = function ($options) use ($Client) {
-            $response = $Client->getClient()->config->get($options['dataId'], $options['group'], $options['tenant']);
-            if ($response->getStatusCode() !== 200) {
-                return;
-            }
-            $content = (string)$response->getBody();
-            $contentMD5 = md5($content);
-            $Client->setCacheMd5($options['configId'], $contentMD5);
-            $config = $Client->decode($content, $options['type'] ?? null);
-            if (empty($config)) {
-                return;
-            }
-            $event_name = 'nacos_config_update';
-            $data = [
-                'configId'   => $options['configId'],
-                'contentMD5' => $contentMD5,
-                'config'     => $config
-            ];
-            Client::publish($event_name, $data);
-        };
-        // 使用协程监听配置变更（Workerman\Http\Client 在协程模式下非阻塞）
-        $Client->listener($callback);
         // 订阅 Worker 就绪事件，统计已就绪进程数
         Client::on('worker_ready', function ($data) {
             $name = $data['name'] ?? '';
@@ -70,6 +45,10 @@ class NacosConfigListener
             }
             self::$registeredWorkers[$name]['ids'][$id] = true;
         });
+
+        $Client = Container::getInstance()->make(NacosClient::class);
+        $config = $Client->pull();
+
         // 定时检查所有 Worker 是否就绪，全部就绪后才推送初始配置
         $timer_id = Timer::add(1, function () use (&$timer_id, $config, $Client) {
             if (empty(self::$registeredWorkers)) {
@@ -93,5 +72,29 @@ class NacosConfigListener
                 Client::publish($event_name, $data);
             }
         });
+
+        // 配置变更回调
+        $callback = function ($options) use ($Client) {
+            $response = $Client->getClient()->config->get($options['dataId'], $options['group'], $options['tenant']);
+            if ($response->getStatusCode() !== 200) {
+                return;
+            }
+            $content = (string)$response->getBody();
+            $contentMD5 = md5($content);
+            $Client->setCacheMd5($options['configId'], $contentMD5);
+            $config = $Client->decode($content, $options['type'] ?? null);
+            if (empty($config)) {
+                return;
+            }
+            $event_name = 'nacos_config_update';
+            $data = [
+                'configId'   => $options['configId'],
+                'contentMD5' => $contentMD5,
+                'config'     => $config
+            ];
+            Client::publish($event_name, $data);
+        };
+        // 使用协程监听配置变更（Workerman\Http\Client 在协程模式下非阻塞）
+        $Client->listener($callback);
     }
 }
